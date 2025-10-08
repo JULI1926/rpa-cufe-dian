@@ -1,0 +1,24 @@
+[
+    {
+    "rutajson":"C:/Users/julia/Desktop/rpa-dian/config/VariablesGlobales.json",
+    "rutaimagen":"C:/Users/julia/Desktop/rpa-dian/config/catchat.png",
+    "rutaimagen2":"C:/Users/julia/Desktop/rpa-dian/config/catchat2.png",
+    "rutaimagenPDF":"C:/Users/julia/Desktop/rpa-dian/config/pdf.png",
+    "rutaimagenerror":"C:/Users/julia/Desktop/rpa-dian/config/error.png",
+    "rutaloop":"C:/Users/julia/Desktop/rpa-dian/config/",
+    "rutapython":"C:/Users/julia/Desktop/rpa-dian/src/",
+    "rutaradian":"C:/Users/julia/Desktop/rpa-dian/config/RADIAN.xlsx",
+    "rutaradiancopia":"C:/Users/julia/Desktop/rpa-dian/config/RADIANCopia.xlsx",
+    "rutapdfbase64":"C:/Users/julia/Desktop/rpa-dian/config/documento_base64.txt",
+    "rutajsondatos":"C:/Users/julia/Desktop/rpa-dian/config/datos_factura.json",
+        "correorpa":"soporteyawi@cyt.com.co",
+        "contrasenarpa":"ratw sbrv tncc bbgr",
+        "destinatario":["jbustos@cyt.com.co","mgonzalez@cyt.com.co","vfranco@cyt.com.co"],
+        "destinatarioerror":["jbustos@cyt.com.co"],
+        "nombrecliente":"CYT",
+        "url":"https://catalogo-vpfe.dian.gov.co/User/SearchDocument",
+        "documentocliente":"900620176"
+        
+    }
+]
+
