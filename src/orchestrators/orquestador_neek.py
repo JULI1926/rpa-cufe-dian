@@ -6,6 +6,10 @@ from datetime import datetime
 import subprocess
 import sys
 
+# Importar utilidades de rutas
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from utils.path_utils import get_config_path, get_project_root, get_absolute_path
+
 # We'll invoke the existing Electroneek/Python helper scripts as subprocesses when needed.
 
 
@@ -16,19 +20,18 @@ def read_variables(path_json=None):
     if path_json:
         candidates.append(path_json)
 
-    # Try config folder in new FAZT API structure
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../config/VariablesGlobales.json'))
+    # Try config folder using utilities
+    config_path = get_config_path()
     candidates.append(config_path)
 
     # Try a VariablesGlobales.json next to this script (common during development)
     script_local = os.path.join(os.path.dirname(__file__), 'VariablesGlobales.json')
     candidates.append(script_local)
 
-    # Try the user's preferred local DIAN folder (user requested)
-    docs_path = r'C:/Users/julia/Desktop/VALIDACIONES_DIAN/DIAN/VariablesGlobales.json'
-    candidates.append(docs_path)
-
     # Also try the DIAN folder in the repo root
+    project_root = get_project_root()
+    repo_path = os.path.join(project_root, 'VariablesGlobales.json')
+    candidates.append(repo_path)
     repo_candidate = os.path.abspath(os.path.join(os.path.dirname(__file__), 'VariablesGlobales.json'))
     candidates.append(repo_candidate)
 
@@ -88,10 +91,10 @@ def main(path_json=None):
     now = datetime.now()
     lote = now.strftime('%Y%m%d%H%M%S')
 
-    # Preparar rutas y copia del excel si hace falta
-    rutaradian = vars_obj.get('rutaradian')
-    rutaradiancopia = vars_obj.get('rutaradiancopia')
-    rutaloop = vars_obj.get('rutaloop')
+    # Preparar rutas y copia del excel si hace falta (convertir rutas relativas a absolutas)
+    rutaradian = get_absolute_path(vars_obj.get('rutaradian')) if vars_obj.get('rutaradian') else None
+    rutaradiancopia = get_absolute_path(vars_obj.get('rutaradiancopia')) if vars_obj.get('rutaradiancopia') else None
+    rutaloop = get_absolute_path(vars_obj.get('rutaloop')) if vars_obj.get('rutaloop') else None
 
     # Si existe archivo original, hacer copia a la ruta copia usada por el resto del código
     if rutaradian and rutaradiancopia:

@@ -2,20 +2,22 @@ import os
 import json
 import base64
 
+# Importar utilidades de rutas
+from path_utils import get_downloads_path, get_config_path, get_absolute_path
 
-#RUTAS ARCHIVOS
-descargas = r'C:/Users/julia/Downloads'
+#RUTAS ARCHIVOS usando utilidades
+descargas = get_downloads_path()
 print("Ruta de Descargas:", descargas)
 
-# Leer el archivo JSON
-rutajson=r'C:/Users/julia/Desktop/VALIDACIONES_DIAN/DIAN/VariablesGlobales.json'
+# Leer el archivo JSON usando utilidades de rutas
+rutajson = get_config_path()
 with open(rutajson, 'r') as archivo:
     datos = json.load(archivo)
 
 # Acceder al primer elemento de la lista
 primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 
-rutapdfbase64= primer_objeto['rutapdfbase64']
+rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
 
 
 ###########################PDF BASE 64 ######################################

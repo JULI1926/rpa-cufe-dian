@@ -7,6 +7,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from navegaciondian import procesarfactura 
+# Importar utilidades de rutas
+sys.path.append(os.path.dirname(current_dir))
+from utils.path_utils import get_config_path, get_absolute_path, get_logs_dir
 import json
 from datetime import datetime
 import getpass
@@ -42,13 +45,8 @@ else:
 # Obtener la fecha actual en formato YYYYMMDD
 fecha_actual = datetime.now().strftime('%Y%m%d')
 
-# Leer el archivo JSON desde la nueva estructura
-current_dir = os.path.dirname(os.path.abspath(__file__))
-rutajson = os.path.abspath(os.path.join(current_dir, '../../config/VariablesGlobales.json'))
-
-# Fallback a la ruta original si no existe en la nueva estructura
-if not os.path.exists(rutajson):
-    rutajson = r'C:/Users/julia/Desktop/VALIDACIONES_DIAN/DIAN/VariablesGlobales.json'
+# Leer el archivo JSON usando utilidades de rutas
+rutajson = get_config_path()
 
 with open(rutajson, 'r') as archivo:
     datos = json.load(archivo)
@@ -56,11 +54,11 @@ with open(rutajson, 'r') as archivo:
 # Acceder al primer elemento de la lista
 primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 
-# Asignar los valores a variables
-archivo_excel = primer_objeto['rutaradian']
+# Asignar los valores a variables (convertir rutas relativas a absolutas)
+archivo_excel = get_absolute_path(primer_objeto['rutaradian'])
 documento = primer_objeto['documentocliente']
-rutatxt = primer_objeto['rutaloop']
-archivo_excelcopia = primer_objeto['rutaradiancopia']
+rutatxt = get_absolute_path(primer_objeto['rutaloop'])
+archivo_excelcopia = get_absolute_path(primer_objeto['rutaradiancopia'])
 
 
 
@@ -92,8 +90,8 @@ df = pd.read_excel(archivo_copia)
 # lote=documento+timestamp
 # print(f"LOTE: {lote}")
 
-# RUTA LOGS: usar carpeta solicitada por el usuario
-base_logs = r"C:\Users\julia\Documents\Archivos Excel DIAN"
+# RUTA LOGS: usar utilidades de rutas para la carpeta de logs
+base_logs = get_logs_dir()
 os.makedirs(base_logs, exist_ok=True)
 logeventos = os.path.join(base_logs, f"LogEventos-{documento}{lote}.txt")
 logerrores = os.path.join(base_logs, f"LogErrores-{documento}{lote}.txt")

@@ -7,6 +7,10 @@ from datetime import datetime
 import json
 import getpass
 
+# Importar utilidades de rutas
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from utils.path_utils import get_config_path
+
 usuario = getpass.getuser()
 print("Usuario del equipo:", usuario)
 
@@ -20,8 +24,8 @@ except Exception:
     # si por alguna razón basename falla, mantener el valor absoluto
     pass
 
-# Leer el archivo JSON
-rutajson=r'C:/Users/julia/Desktop/VALIDACIONES_DIAN/DIAN/VariablesGlobales.json'
+# Leer el archivo JSON usando utilidades de rutas
+rutajson = get_config_path()
 
 with open(rutajson, 'r') as archivo:
     datos = json.load(archivo)

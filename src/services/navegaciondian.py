@@ -17,6 +17,8 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 from gateways.enpoint import post_facturas 
+# Importar utilidades de rutas
+from utils.path_utils import get_downloads_path, get_config_path, get_absolute_path 
 import json
 import pandas as pd
 import cv2
@@ -36,7 +38,7 @@ usuario = getpass.getuser()
 fecha_actual = datetime.now().strftime('%Y%m%d')
 
 #RUTAS ARCHIVOS
-descargas = r'C:/Users/julia/Downloads'
+descargas = get_downloads_path()
 print("Ruta de Descargas:", descargas)
 
 # Asegurarnos de que la carpeta de descargas exista (evita FileNotFoundError cuando se lista)
@@ -47,26 +49,26 @@ if not os.path.isdir(descargas):
     except Exception as e:
         raise FileNotFoundError(f'No se pudo crear la carpeta de descargas {descargas}: {e}')
 
-# Leer el archivo JSON
-rutajson=r'C:/Users/julia/Desktop/VALIDACIONES_DIAN/DIAN/VariablesGlobales.json'
+# Leer el archivo JSON usando ruta relativa
+rutajson = get_config_path()
 with open(rutajson, 'r') as archivo:
     datos = json.load(archivo)
 
 # Acceder al primer elemento de la lista
 primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 
-# Asignar los valores a variables
+# Asignar los valores a variables (convertir rutas relativas a absolutas)
 ruta_carpeta = descargas
-rutaimagen = primer_objeto['rutaimagen']
-rutaimagenpdf = primer_objeto['rutaimagenPDF']
-rutaimagenerror = primer_objeto['rutaimagenerror']
+rutaimagen = get_absolute_path(primer_objeto['rutaimagen'])
+rutaimagenpdf = get_absolute_path(primer_objeto['rutaimagenPDF'])
+rutaimagenerror = get_absolute_path(primer_objeto['rutaimagenerror'])
 nombrecliente = primer_objeto['nombrecliente']
 documentocliente = primer_objeto['documentocliente']
-rutatxt = primer_objeto['rutaloop']
-rutapdfbase64= primer_objeto['rutapdfbase64']
+rutatxt = get_absolute_path(primer_objeto['rutaloop'])
+rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
 # Ruta donde se guardará el archivo JSON
-ruta_json = primer_objeto['rutajsondatos']
-archivo_excel = primer_objeto['rutaradiancopia']
+ruta_json = get_absolute_path(primer_objeto['rutajsondatos'])
+archivo_excel = get_absolute_path(primer_objeto['rutaradiancopia'])
 
 
 def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
