@@ -82,43 +82,84 @@ try:
         - Si sigue fallando y allow_manual=True, pausa y permite intervención humana.
         Retorna True si fue clickeada, False en caso contrario.
         """
-        # Try with pyautogui multiple times
-        for i in range(retries):
+        # Intentar detectar usando la región de la ventana del navegador para acelerar
+        try:
+            # Obtener posición y tamaño de la ventana del navegador si driver está disponible
+            win_left = win_top = win_width = win_height = None
             try:
-                pos = pyautogui.locateCenterOnScreen(image_path, confidence=0.8)
-                if pos:
-                    pyautogui.click(pos)
-                    print(f"Imagen encontrada y clickeada (pyautogui) en intento {i+1}")
-                    return True
-            except Exception as e:
-                # pyautogui may raise if screenshot access is blocked; keep trying
-                print(f"pyautogui intento {i+1} fallo: {e}")
-            time.sleep(pause)
+                rect = driver.get_window_rect()
+                win_left = int(rect.get('x', 0))
+                win_top = int(rect.get('y', 0))
+                win_width = int(rect.get('width', 0))
+                win_height = int(rect.get('height', 0))
+                # Reducir la región un poco (margen) para evitar barras/frames
+                margin_w = max(20, win_width // 20)
+                margin_h = max(20, win_height // 20)
+                region = (win_left + margin_w, win_top + margin_h, max(50, win_width - 2 * margin_w), max(50, win_height - 2 * margin_h))
+            except Exception:
+                region = None
+
+            for i in range(retries):
+                try:
+                    if region:
+                        # Usar screenshot de la región para localizar más rápido
+                        screenshot = pyautogui.screenshot(region=region)
+                        pos = pyautogui.locateCenterOnScreen(image_path, confidence=0.8, region=region)
+                    else:
+                        pos = pyautogui.locateCenterOnScreen(image_path, confidence=0.8)
+
+                    if pos:
+                        pyautogui.click(pos)
+                        print(f"Imagen encontrada y clickeada (pyautogui) en intento {i+1} -> pos={pos}")
+                        return True
+                except Exception as e:
+                    # pyautogui may raise if screenshot access is blocked; keep trying
+                    print(f"pyautogui intento {i+1} fallo: {e}")
+                time.sleep(pause)
+        except Exception as e:
+            print("Error preparando búsqueda por región:", e)
 
         # Fallback using OpenCV template matching if available
         if use_opencv_fallback:
             try:
                 import cv2
                 import numpy as np
-                print("Intentando fallback OpenCV...")
+                print("Intentando fallback OpenCV (region-aware)...")
                 template = cv2.imread(image_path, cv2.IMREAD_COLOR)
                 if template is None:
                     print("OpenCV: no pudo leer la plantilla, verificar ruta")
                 else:
                     w, h = template.shape[1], template.shape[0]
-                    screenshot = pyautogui.screenshot()
-                    screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-                    res = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
-                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-                    threshold = 0.75
-                    if max_val >= threshold:
-                        center_x = max_loc[0] + w // 2
-                        center_y = max_loc[1] + h // 2
-                        pyautogui.click(center_x, center_y)
-                        print(f"Imagen encontrada y clickeada (OpenCV) con score {max_val}")
-                        return True
+                    # Si tenemos region, tomar screenshot sólo de esa región
+                    if 'region' in locals() and region is not None:
+                        sx, sy, sw, sh = region
+                        screenshot = pyautogui.screenshot(region=region)
+                        screenshot_cv = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+                        res = cv2.matchTemplate(screenshot_cv, template, cv2.TM_CCOEFF_NORMED)
+                        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                        threshold = 0.72
+                        if max_val >= threshold:
+                            center_x = sx + max_loc[0] + w // 2
+                            center_y = sy + max_loc[1] + h // 2
+                            pyautogui.click(center_x, center_y)
+                            print(f"Imagen encontrada y clickeada (OpenCV region) con score {max_val}")
+                            return True
+                        else:
+                            print(f"OpenCV region match score {max_val} < {threshold}")
                     else:
-                        print(f"OpenCV match score {max_val} < {threshold}")
+                        screenshot = pyautogui.screenshot()
+                        screenshot_cv = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+                        res = cv2.matchTemplate(screenshot_cv, template, cv2.TM_CCOEFF_NORMED)
+                        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                        threshold = 0.75
+                        if max_val >= threshold:
+                            center_x = max_loc[0] + w // 2
+                            center_y = max_loc[1] + h // 2
+                            pyautogui.click(center_x, center_y)
+                            print(f"Imagen encontrada y clickeada (OpenCV) con score {max_val}")
+                            return True
+                        else:
+                            print(f"OpenCV match score {max_val} < {threshold}")
             except Exception as e:
                 print("OpenCV fallback no disponible o falló:", e)
 
