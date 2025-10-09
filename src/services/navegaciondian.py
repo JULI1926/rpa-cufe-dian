@@ -16,7 +16,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from gateways.enpoint import post_facturas 
+from gateways.ApiDianGateway import post_facturas 
 # Importar utilidades de rutas
 from utils.path_utils import get_downloads_path, get_config_path, get_absolute_path 
 import json
@@ -889,9 +889,16 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     }
 
     
+
     # Guardar el diccionario como un archivo JSON
     with open(ruta_json, "w", encoding="utf-8") as archivo:
         json.dump(datos, archivo, indent=4, ensure_ascii=False)
+
+    # Guardar la información de la factura procesada en un archivo acumulativo TXT
+    ruta_txt_facturas = os.path.join(os.path.dirname(ruta_json), "facturas_procesadas.txt")
+    with open(ruta_txt_facturas, "a", encoding="utf-8") as archivo_txt:
+        archivo_txt.write(json.dumps(datos, ensure_ascii=False))
+        archivo_txt.write("\n---\n")
 
     #print(f"Archivo JSON guardado en: {ruta_json}")
 

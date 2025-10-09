@@ -28,7 +28,6 @@ app = FastAPI(
     * **Validación CUFE/CUDE**: Navega automáticamente por la página de DIAN
     * **Notificaciones**: Envía correos de inicio, fin y errores
     * **Logs**: Genera logs detallados de eventos y errores
-    * **Estado del sistema**: Verifica archivos críticos y configuración
     
     ## Estructura del proyecto:
     

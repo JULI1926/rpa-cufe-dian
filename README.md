@@ -12,7 +12,6 @@ Este proyecto migra el RPA DIAN existente a una estructura FAZT API organizada u
 - ✅ **Validación CUFE/CUDE**: Navega automáticamente por la página de DIAN usando Selenium
 - ✅ **Notificaciones**: Envía correos de inicio, fin y errores 
 - ✅ **Logs detallados**: Genera logs de eventos y errores
-- ✅ **Estado del sistema**: Verifica archivos críticos y configuración
 - ✅ **Documentación automática**: Swagger UI integrado
 
 ## 🏗️ Estructura del Proyecto
@@ -102,28 +101,6 @@ Ejecuta el orquestador DIAN completo:
   "exit_code": 0,
   "output": "...",
   "timestamp": "2024-10-08T10:30:00"
-}
-```
-
-### `GET /api/v1/dian/estado`
-
-Obtiene el estado del sistema:
-
-```json
-{
-  "success": true,
-  "estado": "Sistema operativo",
-  "archivos": {
-    "orquestador": {"existe": true, "ruta": "..."},
-    "navegacion": {"existe": true, "ruta": "..."},
-    "recorrer_excel": {"existe": true, "ruta": "..."},
-    "config": {"existe": true, "ruta": "..."}
-  },
-  "configuracion": {
-    "documentocliente": "900620176",
-    "nombrecliente": "CYT",
-    "contrasenarpa": "***hidden***"
-  }
 }
 ```
 

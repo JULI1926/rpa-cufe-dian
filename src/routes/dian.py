@@ -45,11 +45,6 @@ class ProcesarResponse(ResponseBase):
     details: Optional[str] = None
     stderr: Optional[str] = None
 
-class EstadoResponse(ResponseBase):
-    estado: str
-    archivos: Dict[str, Any]
-    configuracion: Optional[Dict[str, Any]] = None
-
 # Instanciar controlador
 dian_controller = DianController()
 
@@ -74,23 +69,4 @@ async def procesar_facturas(request: ProcesarRequest):
         return result
     except Exception as e:
         logger.error(f"Error en procesar_facturas: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/estado",
-         response_model=EstadoResponse,
-         summary="Estado del sistema",
-         description="""
-         Verifica el estado de los archivos críticos y la configuración del sistema:
-         
-         - Scripts Python principales (orquestador, navegación, Excel)
-         - Archivo de configuración VariablesGlobales.json
-         - Configuración actual (sin datos sensibles como contraseñas)
-         """)
-async def obtener_estado():
-    """Obtener estado del sistema RPA DIAN"""
-    try:
-        result = await dian_controller.obtener_estado()
-        return result
-    except Exception as e:
-        logger.error(f"Error en obtener_estado: {e}")
         raise HTTPException(status_code=500, detail=str(e))
