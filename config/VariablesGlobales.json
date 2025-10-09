@@ -1,16 +1,12 @@
 [
     {
-    "rutajson":"config/VariablesGlobales.json",
-    "rutaimagen":"config/catchat.png",
-    "rutaimagen2":"config/catchat2.png",
-    "rutaimagenPDF":"config/pdf.png",
-    "rutaimagenerror":"config/error.png",
-    "rutaloop":"config/",
-    "rutapython":"src/",
-    "rutaradian":"config/RADIAN.xlsx",
-    "rutaradiancopia":"config/RADIANCopia.xlsx",
-    "rutapdfbase64":"config/documento_base64.txt",
-    "rutajsondatos":"config/datos_factura.json",
+        "rutajson":"config/VariablesGlobales.json",
+        "rutaimagen":"config/catchat.png",
+        "rutaimagen2":"config/catchat2.png",
+        "rutaimagenPDF":"config/pdf.png",
+        "rutaimagenerror":"config/error.png",
+        "rutaloop":"config/",
+        "rutapdfbase64":"config/documento_base64.txt",
         "correorpa":"soporteyawi@cyt.com.co",
         "contrasenarpa":"ratw sbrv tncc bbgr",
         "destinatario":["juliansena2024@gmail.com"],        
@@ -20,7 +16,6 @@
         "nombrecliente":"CYT",
         "url":"https://catalogo-vpfe.dian.gov.co/User/SearchDocument",
         "documentocliente":"900620176"
-        
     }
 ]
 

@@ -66,9 +66,8 @@ nombrecliente = primer_objeto['nombrecliente']
 documentocliente = primer_objeto['documentocliente']
 rutatxt = get_absolute_path(primer_objeto['rutaloop'])
 rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
-# Ruta donde se guardará el archivo JSON
-ruta_json = get_absolute_path(primer_objeto['rutajsondatos'])
 # archivo_excel ya no se necesita - las facturas se obtienen del endpoint
+# ruta_json ya no se necesita - los datos se envían directamente como objeto
 
 
 def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
@@ -880,21 +879,22 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
 
     
 
-    # Guardar el diccionario como un archivo JSON
-    with open(ruta_json, "w", encoding="utf-8") as archivo:
-        json.dump(datos, archivo, indent=4, ensure_ascii=False)
-
-    # Guardar la información de la factura procesada en un archivo acumulativo TXT
-    ruta_txt_facturas = os.path.join(os.path.dirname(ruta_json), "facturas_procesadas.txt")
+    # =====================================================
+    # ENVIAR DATOS DIRECTAMENTE AL ENDPOINT (SIN ARCHIVO JSON)
+    # =====================================================
+    # Ya no guardamos en disco - enviamos directamente el objeto datos
+    print(f"[INFO] Enviando datos al endpoint para CUFE: {cufe[:20]}...")
+    
+    # Guardar la información de la factura procesada en un archivo acumulativo TXT (solo para auditoría)
+    config_dir = get_absolute_path("config")
+    ruta_txt_facturas = os.path.join(config_dir, "facturas_procesadas.txt")
     with open(ruta_txt_facturas, "a", encoding="utf-8") as archivo_txt:
         archivo_txt.write(json.dumps(datos, ensure_ascii=False))
         archivo_txt.write("\n---\n")
 
-    #print(f"Archivo JSON guardado en: {ruta_json}")
-
-    #RESPUESTA EMPOINT
-    response=post_facturas(datos)
-    print("RESPONSE: ",response)
+    # LLAMADA DIRECTA AL ENDPOINT SIN ARCHIVO INTERMEDIO
+    response = post_facturas(datos)
+    print("RESPONSE: ", response)
     # Si la llamada al endpoint falló y devolvió None, no seguir intentando indexar la respuesta
     if not response:
         print("No se obtuvo respuesta del endpoint /facturas. Ver logs para más detalles.")
@@ -970,4 +970,34 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     print("Salida exitosa")
     # Indicar al llamador que la función terminó correctamente
     return True
+
+
+# =====================================================
+# MEJORA FUTURA: PROCESAMIENTO PARALELO SIN ARCHIVOS JSON
+# =====================================================
+# Para procesar múltiples facturas en paralelo, se puede crear una función:
+#
+# def procesar_factura_paralela(cufe_data, lote, callback=None):
+#     """
+#     Procesa una factura y envía datos directamente sin archivos intermedios
+#     
+#     Args:
+#         cufe_data: dict con {cufeCude, batch} del endpoint
+#         lote: string identificador del lote
+#         callback: función opcional para manejar la respuesta
+#     
+#     Returns:
+#         dict: datos de la factura procesada
+#     """
+#     # 1. Extraer datos de DIAN (misma lógica actual)
+#     # 2. Crear objeto datos en memoria
+#     # 3. Llamar post_facturas(datos) directamente
+#     # 4. Ejecutar callback si se proporciona
+#     # 5. Retornar resultado
+#
+# Beneficios:
+# - Procesamiento concurrente con threading/asyncio
+# - Sin conflictos de archivos JSON
+# - Mejor rendimiento y escalabilidad
+# - Múltiples facturas simultáneas
 
