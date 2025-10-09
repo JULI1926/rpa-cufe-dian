@@ -11,11 +11,11 @@ if __name__ == "__main__":
     # Agregar el directorio actual al path
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     
-    print("🚀 Iniciando servidor RPA DIAN API...")
-    print("📚 Documentación disponible en: http://localhost:8000/docs")
-    print("📖 Documentación alternativa en: http://localhost:8000/redoc")
-    print("❤️  Health check en: http://localhost:8000/health")
-    print("🔧 Configuración actual: config/VariablesGlobales.json")
+    print("[INFO] Iniciando servidor RPA DIAN API...")
+    print("[DOCS] Documentacion disponible en: http://localhost:8000/docs")
+    print("[DOCS] Documentacion alternativa en: http://localhost:8000/redoc")
+    print("[HEALTH] Health check en: http://localhost:8000/health")
+    print("[CONFIG] Configuracion actual: config/VariablesGlobales.json")
     print("")
     print("Para detener el servidor presiona Ctrl+C")
     

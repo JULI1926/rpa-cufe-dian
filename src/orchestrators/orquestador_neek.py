@@ -1,6 +1,5 @@
 import os
 import json
-import shutil
 import getpass
 from datetime import datetime
 import subprocess
@@ -91,18 +90,9 @@ def main(path_json=None):
     now = datetime.now()
     lote = now.strftime('%Y%m%d%H%M%S')
 
-    # Preparar rutas y copia del excel si hace falta (convertir rutas relativas a absolutas)
-    rutaradian = get_absolute_path(vars_obj.get('rutaradian')) if vars_obj.get('rutaradian') else None
-    rutaradiancopia = get_absolute_path(vars_obj.get('rutaradiancopia')) if vars_obj.get('rutaradiancopia') else None
-    rutaloop = get_absolute_path(vars_obj.get('rutaloop')) if vars_obj.get('rutaloop') else None
-
-    # Si existe archivo original, hacer copia a la ruta copia usada por el resto del código
-    if rutaradian and rutaradiancopia:
-        try:
-            shutil.copyfile(rutaradian, rutaradiancopia)
-            print(f'Excel copiado a {rutaradiancopia}')
-        except Exception as e:
-            print('No se pudo copiar Excel, continuar si el archivo copia ya existe:', e)
+    # Ya no se necesita copia de Excel - las facturas se obtienen del endpoint
+    print(f'[OK] Lote generado: {lote}')
+    print('[INFO] Las facturas se obtendran desde el endpoint, no desde Excel')
 
     # Enviar correo de inicio (intento, no bloquear si falla)
     enviar_correo_inicio(rutajson)

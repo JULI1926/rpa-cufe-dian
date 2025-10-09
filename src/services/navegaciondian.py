@@ -20,7 +20,6 @@ from gateways.ApiDianGateway import post_facturas
 # Importar utilidades de rutas
 from utils.path_utils import get_downloads_path, get_config_path, get_absolute_path 
 import json
-import pandas as pd
 import cv2
 import numpy as np
 from selenium import webdriver
@@ -69,7 +68,7 @@ rutatxt = get_absolute_path(primer_objeto['rutaloop'])
 rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
 # Ruta donde se guardará el archivo JSON
 ruta_json = get_absolute_path(primer_objeto['rutajsondatos'])
-archivo_excel = get_absolute_path(primer_objeto['rutaradiancopia'])
+# archivo_excel ya no se necesita - las facturas se obtienen del endpoint
 
 
 def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
@@ -290,22 +289,13 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     try:
         elemento = driver.find_element(By.XPATH, '//*[@id="search-document-form"]/div[2]/span')
         texto = elemento.text  # Obtener el contenido del <span>
-        # Cargar el archivo Excel
+        # CUFE no encontrado en DIAN - ya no manipulamos Excel, solo registramos el error
         if "Documento no encontrado" in texto:
-            #archivo_excel = "DIAN/RADIANCopia.xlsx"
-            df = pd.read_excel(archivo_excel)
-            #df.info()
-            # Filtrar las filas donde la columna "CUFE" NO contenga los valores de dato1 y dato2
-            df = df[~df["CUFE/CUDE"].isin([cufe])]
-
-            # Guardar los cambios en el mismo archivo
-            df.to_excel(archivo_excel, index=False)
-
             driver.quit()
             # Obtener la fecha y hora actual en el formato deseado
             fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
             # Crear el mensaje de log
-            mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Cufe No encontrado No existe Documento no encontrado en los registros de la DIAN.: | Fin  Error CUFE: {cufe} !\n"
+            mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Cufe No encontrado - No existe en los registros de la DIAN: | Fin Error CUFE: {cufe} !\n"
 
             # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
             with open(logerrores, "a", encoding="utf-8") as archivo:
@@ -961,17 +951,10 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
             os.remove(ruta_archivo)  # Elimina el archivo
             #print(f"Eliminado: {archivo}")
 
-    ################################ELIMINAR FILA ARCHIVOS EXCEL ########################################
-    # Cargar el archivo Excel
-    #archivo_excel = "DIAN/RADIANCopia.xlsx"
-    df = pd.read_excel(archivo_excel)
-    #df.info()
-    # Filtrar las filas donde la columna "CUFE" NO contenga los valores de dato1 y dato2
-    df = df[~df["CUFE/CUDE"].isin([cufe])]
-
-    # Guardar los cambios en el mismo archivo
-    df.to_excel(archivo_excel, index=False)
-
+    # =====================================================
+    # PROCESAMIENTO COMPLETADO EXITOSAMENTE
+    # Ya no eliminamos filas de Excel, el endpoint maneja el estado
+    # =====================================================
 
     # Cierra el navegador al final, pase lo que pase
     driver.quit()

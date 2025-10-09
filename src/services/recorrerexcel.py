@@ -1,4 +1,3 @@
-import pandas as pd
 import sys
 import os
 
@@ -10,6 +9,7 @@ from navegaciondian import procesarfactura
 # Importar utilidades de rutas
 sys.path.append(os.path.dirname(current_dir))
 from utils.path_utils import get_config_path, get_absolute_path, get_logs_dir
+from gateways.ApiDianGateway import get_facturas_faltantes
 import json
 from datetime import datetime
 import getpass
@@ -54,41 +54,10 @@ with open(rutajson, 'r') as archivo:
 # Acceder al primer elemento de la lista
 primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 
-# Asignar los valores a variables (convertir rutas relativas a absolutas)
-archivo_excel = get_absolute_path(primer_objeto['rutaradian'])
+# Asignar los valores a variables (solo las que necesitamos para logs)
 documento = primer_objeto['documentocliente']
-rutatxt = get_absolute_path(primer_objeto['rutaloop'])
-archivo_excelcopia = get_absolute_path(primer_objeto['rutaradiancopia'])
 
 
-
-# # Leer el archivo Excel original
-# archivo_original =archivo_excel
-# df = pd.read_excel(archivo_original)
-
-# # Guardar la copia con otro nombre
-archivo_copia = archivo_excelcopia
-# df.to_excel(archivo_copia, index=False)
-
-# print(f"Copia creada: {archivo_copia}")
-
-
-
-# Leer el archivo Excel
-#archivo_excel = "DIAN/RADIAN.xlsx"
-
-# Cargar el archivo en un DataFrame
-#df = pd.read_excel(archivo_excel)
-df = pd.read_excel(archivo_copia)
-
-#HORA
-# # Obtener la fecha y hora actual en el formato deseado
-# timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-# #print(timestamp)
-
-# #Armar LOTE
-# lote=documento+timestamp
-# print(f"LOTE: {lote}")
 
 # RUTA LOGS: usar utilidades de rutas para la carpeta de logs
 base_logs = get_logs_dir()
@@ -96,31 +65,72 @@ os.makedirs(base_logs, exist_ok=True)
 logeventos = os.path.join(base_logs, f"LogEventos-{documento}{lote}.txt")
 logerrores = os.path.join(base_logs, f"LogErrores-{documento}{lote}.txt")
 
-# # Obtener la fecha y hora actual en el formato deseado
-# fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-# # Crear el mensaje de log
-# mensaje = f"FECHA: [{fecha_actual}] | INFO | IniciarRegistro | Inicio tarea | Inicio  con exito!\n"
-# # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
-# with open(logeventos, "a", encoding="utf-8") as archivo:
-#     archivo.write(mensaje)
+# ===============================================
+# OBTENER FACTURAS FALTANTES DESDE ENDPOINT
+# ===============================================
+print("[INFO] Consultando facturas faltantes desde el endpoint...")
 
-# Recorrer las filas y extraer columnas específicas (asumiendo que 'Orden' y 'NIT' son los nombres de las columnas)
-for index, fila in df.iterrows():
-    cufe = str(fila['CUFE/CUDE'])
-    nit = str(fila['NIT Emisor'])
-    resultado = procesarfactura(cufe,lote,logeventos,logerrores)
+try:
+    facturas_response = get_facturas_faltantes()
+    
+    if not facturas_response:
+        print("[ERROR] No se pudo obtener respuesta del endpoint")
+        sys.exit(1)
+    
+    # Verificar estructura de respuesta
+    if facturas_response.get('status') != 200:
+        print(f"[ERROR] Respuesta del endpoint con status {facturas_response.get('status')}")
+        print(f"Mensaje: {facturas_response.get('message', 'Sin mensaje')}")
+        sys.exit(1)
+    
+    # Extraer los registros
+    response_data = facturas_response.get('response', {})
+    records = response_data.get('records', [])
+    total_missing = response_data.get('totalMissing', 0)
+    
+    print(f"[SUCCESS] Facturas faltantes obtenidas: {total_missing} registros")
+    print(f"[INFO] Registros a procesar: {len(records)}")
+    
+    if len(records) == 0:
+        print("[SUCCESS] No hay facturas faltantes para procesar")
+        sys.exit(0)
+        
+except Exception as e:
+    print(f"[ERROR] al consultar endpoint: {e}")
+    sys.exit(1)
+
+# ===============================================
+# PROCESAR FACTURAS FALTANTES
+# ===============================================
+print("[INFO] Iniciando procesamiento de facturas faltantes...")
+
+# Recorrer los registros del endpoint y procesar cada CUFE
+for index, registro in enumerate(records):
+    cufe = registro.get('cufeCude', '')
+    batch = registro.get('batch', '')
+    
+    if not cufe:
+        print(f"[WARNING] Registro {index + 1}: CUFE vacio, saltando...")
+        continue
+    
+    print(f"[PROCESSING] Registro {index + 1}/{len(records)}: CUFE: {cufe[:20]}... Batch: {batch}")
+    
+    # Llamar a la función de procesamiento
+    resultado = procesarfactura(cufe, lote, logeventos, logerrores)
+    
     if not resultado:
         # Registrar en log de errores que la navegación falló para este CUFE
         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-        mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Falló procesar CUFE: {cufe} | Lote: {lote}\n"
+        mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Falló procesar CUFE: {cufe} | Lote: {lote} | Batch: {batch}\n"
         with open(logerrores, "a", encoding="utf-8") as archivo:
             archivo.write(mensajeerror)
-        print(f"Fila {index + 1} -> Orden: {cufe} (ERROR: imagen no encontrada o navegación fallida)")
+        print(f"[ERROR] Registro {index + 1} -> CUFE: {cufe[:20]}... (ERROR: imagen no encontrada o navegacion fallida)")
         # Asegurarse de cerrar chrome por si queda abierto
         os.system("taskkill /f /im chrome.exe")
         # Continuar con la siguiente fila
         continue
-    print(f"Fila {index + 1} -> Orden: {cufe}, NIT: {nit}")
+    
+    print(f"[SUCCESS] Registro {index + 1} -> CUFE: {cufe[:20]}... procesado exitosamente")
     # Cierra todos los procesos de Google Chrome (post éxito)
     os.system("taskkill /f /im chrome.exe")
 
@@ -128,9 +138,10 @@ for index, fila in df.iterrows():
 # Obtener la fecha y hora actual en el formato deseado
 fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
 # Crear el mensaje de log
-mensaje = f"FECHA: [{fecha_actual}] | INFO | Fin Procesar Excel | Finalizo tarea | Finalizo  con exito!\n"
+mensaje = f"FECHA: [{fecha_actual}] | INFO | Fin Procesar Facturas Endpoint | Finalizo tarea | Finalizo con exito! Total procesadas: {len(records)}\n"
 # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
 with open(logeventos, "a", encoding="utf-8") as archivo:
     archivo.write(mensaje)
     
-print("Salida archivo excel")
+print("[SUCCESS] Procesamiento completado - Facturas obtenidas desde endpoint")
+print(f"[INFO] Total de registros procesados: {len(records)}")
