@@ -2,6 +2,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 import pyautogui
 import os
@@ -9,38 +12,24 @@ import sys
 import re
 import json
 import base64
+import cv2
+import numpy as np
+import getpass
 from datetime import datetime
 
-# Agregar la ruta del directorio padre para poder importar desde gateways
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 from gateways.ApiDianGateway import post_facturas 
-# Importar utilidades de rutas
-from utils.path_utils import get_downloads_path, get_config_path, get_absolute_path 
-import json
-import cv2
-import numpy as np
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-import getpass
-# Opción 1: Más simple y confiable
-usuario = getpass.getuser()
+from utils.path_utils import get_downloads_path, get_config_path, get_absolute_path
 
-# Obtener la fecha actual en formato YYYYMMDD
+usuario = getpass.getuser()
 fecha_actual = datetime.now().strftime('%Y%m%d')
 
-#RUTAS ARCHIVOS
 descargas = get_downloads_path()
 print("Ruta de Descargas:", descargas)
 
-# Asegurarnos de que la carpeta de descargas exista (evita FileNotFoundError cuando se lista)
 if not os.path.isdir(descargas):
     try:
         os.makedirs(descargas, exist_ok=True)
@@ -48,26 +37,19 @@ if not os.path.isdir(descargas):
     except Exception as e:
         raise FileNotFoundError(f'No se pudo crear la carpeta de descargas {descargas}: {e}')
 
-# Leer el archivo JSON usando ruta relativa
 rutajson = get_config_path()
 with open(rutajson, 'r') as archivo:
     datos = json.load(archivo)
 
-# Acceder al primer elemento de la lista
-primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
+primer_objeto = datos[0]
 
-# Asignar los valores a variables (convertir rutas relativas a absolutas)
 ruta_carpeta = descargas
 rutaimagen = get_absolute_path(primer_objeto['rutaimagen'])
 rutaimagen2 = get_absolute_path(primer_objeto['rutaimagen2'])
 rutaimagenpdf = get_absolute_path(primer_objeto['rutaimagenPDF'])
 rutaimagenerror = get_absolute_path(primer_objeto['rutaimagenerror'])
-nombrecliente = primer_objeto['nombrecliente']
-documentocliente = primer_objeto['documentocliente']
 rutatxt = get_absolute_path(primer_objeto['rutaloop'])
 rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
-# archivo_excel ya no se necesita - las facturas se obtienen del endpoint
-# ruta_json ya no se necesita - los datos se envían directamente como objeto
 
 
 def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
@@ -112,32 +94,25 @@ def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
     return False
 
 
-# # dEFINIR vARIABLESgLOBALES
-# ruta_carpeta = descargas
-# rutaimagen= "DIAN/catchat.png"
-# nombrecliente='Alejandro Bustos'
-# documentocliente='1054990077'
-# logeventos=f"DIAN/LogEventos{fecha_actual}.txt"
-# logerrores=f"DIAN/LogErrores{fecha_actual}.txt"
+def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, client_document=None):
+    if client_name and client_document:
+        nombre_cliente_actual = client_name
+        documento_cliente_actual = client_document
+        print(f"[INFO] Usando datos del cliente desde endpoint: {nombre_cliente_actual} ({documento_cliente_actual})")
+    else:
+        nombre_cliente_actual = primer_objeto.get('nombrecliente', 'Cliente por defecto')
+        documento_cliente_actual = primer_objeto.get('documentocliente', '000000000')
+        print(f"[INFO] Usando datos del cliente desde configuracion: {nombre_cliente_actual} ({documento_cliente_actual})")
 
-
-#FUNCION NAVEGACION
-def procesarfactura(cufeexcel,lote,logeventos,logerrores):
-
-    ################################ELIMINAR ARCHIVOS PDF ########################################
-
-
-    # Recorrer la carpeta y eliminar los archivos PDF
     for archivo in os.listdir(ruta_carpeta):
-        if archivo.endswith(".pdf"):  # Verifica si es un archivo PDF
+        if archivo.endswith(".pdf"):
             ruta_archivo = os.path.join(ruta_carpeta, archivo)
-            os.remove(ruta_archivo)  # Elimina el archivo
+            os.remove(ruta_archivo)
             #print(f"Eliminado: {archivo}")
 
     #print("Eliminación completada.")
     
     
-    #NAVEGACION PARA CATCHAT
     options = webdriver.ChromeOptions()
     options.add_experimental_option("detach", True)
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -150,32 +125,17 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     options.add_argument('--disable-browser-side-navigation')
     options.add_argument('--disable-gpu')
 
-    # driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=options)
-    # driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-
-    # ✅ Así es como se usa con Selenium moderno
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
-    #Esta es la que funciona
-    driver = webdriver.Chrome(options=options)
-    # Maximizar la ventana
-    #driver.maximize_window()
-
-
     driver.execute_script("window.open('https://catalogo-vpfe.dian.gov.co/User/SearchDocument', '_blank')")
-    # Optimizado: reducir tiempo de espera de 15 a 5 segundos para abrir navegador
     time.sleep(5)
     driver.switch_to.window(driver.window_handles[1])
     print("buscando pagina")
     cufe = cufeexcel
     
-
-    ###########################ESCRBIR DATOS EN EL INPUT INGRESAR CUFE ##############################
-    #contador=0
     for i in range(3):
         try:
-            # Encontrar el input y escribir el valor ingresar el CUFE
             input_field = driver.find_element(By.XPATH, '//*[@id="DocumentKey"]')
             input_field.send_keys(cufe)
             break
@@ -193,54 +153,7 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
                 time.sleep(1)
                 continue
 
-    ########################################BUSCAR IMAGEN CATCHAT#####################################
-    # Esperar a que cargue la página
-    #time.sleep(3)
-    #Clic Cordenadas
-    # pyautogui.doubleClick(1093, 688)  #Doble clic en (500, 300)
     
-    # try:
-    #     # Buscar la imagen en la pantalla y hacer clic
-    #     pos = pyautogui.locateCenterOnScreen(rutaimagen, confidence=0.6, grayscale=True)
-    #     #pos = pyautogui.locateCenterOnScreen(rutaimagen, confidence=0.6, grayscale=True)
-
-    #     # # Esperar a que cargue la página
-    #     #time.sleep(4)
-    #     if pos :
-    #         #Clic Cordenadas
-    #         #pyautogui.doubleClick(1093, 688)  #Doble clic en (500, 300)
-    #         #Clic Imagen
-    #         pyautogui.click(pos)
-    #         print("Imagen encontrada y clickeada")
-            
-    #     else:
-    #         print("Imagen no encontrada")
-    #         # Cierra el navegador al final, pase lo que pase
-    #         driver.quit()
-    #         # Obtener la fecha y hora actual en el formato deseado
-    #         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-    #         # Crear el mensaje de log
-    #         mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Imagen No encontrada Catchat Else: | Fin  Error CUFE: {cufe} !\n"
-
-    #         # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
-    #         with open(logerrores, "a", encoding="utf-8") as archivo:
-    #             archivo.write(mensajeerror)
-    #         return None
-            
-    # except Exception as e:
-    #     # Cierra el navegador al final, pase lo que pase
-    #         driver.quit()
-    #         # Obtener la fecha y hora actual en el formato deseado
-    #         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-    #         # Crear el mensaje de log
-    #         mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Imagen No encontrada Catchat Try: | Fin  Error CUFE: {cufe} !\n"
-
-    #         # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
-    #         with open(logerrores, "a", encoding="utf-8") as archivo:
-    #             archivo.write(mensajeerror)
-    #         return None
-
-   
 
     ########################################BUSCAR IMAGEN CATCHAT#####################################
     # Esperar a que cargue la página
@@ -568,12 +481,7 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
         # Asignar valores a variables
         serie = match_serie.group(1) if match_serie else None
         folio = match_folio.group(1) if match_folio else None
-        fecha_emision = match_fecha.group(1) if match_fecha else None
-
-        # Mostrar resultados
-        # print(f"Serie: {serie}")
-        # print(f"Folio: {folio}")
-        # print(f"Fecha de emisión: {fecha_emision}")
+        fecha_emision = match_fecha.group(1) if match_fecha else None       
 
     except Exception as e:
             print("No se encontró el dato.")
@@ -828,8 +736,8 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
 
     # Crear un diccionario con los datos
     datos = {
-        "clienteNombre": nombrecliente,
-        "clienteDocumento": documentocliente,
+        "clienteNombre": nombre_cliente_actual,
+        "clienteDocumento": documento_cliente_actual,
         "LOTE": lote,
         "CUFE": cufe,
         "nombreEmisor": nombre,
@@ -854,8 +762,8 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     # Crear un diccionario con los datos
     pdf='Pendiente'
     datos2 = {
-        "clienteNombre": nombrecliente,
-        "clienteDocumento": documentocliente,
+        "clienteNombre": nombre_cliente_actual,
+        "clienteDocumento": documento_cliente_actual,
         "LOTE": lote,
         "CUFE": cufe,
         "nombreEmisor": nombre,

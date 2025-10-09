@@ -9,13 +9,11 @@
         "rutapdfbase64":"config/documento_base64.txt",
         "correorpa":"soporteyawi@cyt.com.co",
         "contrasenarpa":"ratw sbrv tncc bbgr",
-        "destinatario":["juliansena2024@gmail.com"],        
+        "_destinatario":["juliansena2024@gmail.com"],        
         "_destinatario_comentado": ["jbustos@cyt.com.co","mgonzalez@cyt.com.co","vfranco@cyt.com.co"],
         "destinatarioerror":["juliansena2024@gmail.com"], 
-        "_destinatario_error":["jbustos@cyt.com.co"],
-        "nombrecliente":"CYT",
-        "url":"https://catalogo-vpfe.dian.gov.co/User/SearchDocument",
-        "documentocliente":"900620176"
+        "_destinatario_error":["jbustos@cyt.com.co"],       
+        "url":"https://catalogo-vpfe.dian.gov.co/User/SearchDocument"        
     }
 ]
 
