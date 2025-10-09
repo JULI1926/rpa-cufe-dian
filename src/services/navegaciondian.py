@@ -164,15 +164,13 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     # Maximizar la ventana
     #driver.maximize_window()
 
-    #driver.execute_script("window.open('https://catalogo-vpfe.dian.gov.co/User/SearchDocument?DocumentKey=aca110df32e1fc44881d26dfa30f1e1a41aef5263af21702c6b32ee2fcc83184b3f5db4d2d43e2bfab4425ab9c4050ae#', '_blank')")
+
     driver.execute_script("window.open('https://catalogo-vpfe.dian.gov.co/User/SearchDocument', '_blank')")
-    #NO BAJAR TIEMPO DE 15 SEGUNDOS
-    time.sleep(15)
+    # Optimizado: reducir tiempo de espera de 15 a 5 segundos para abrir navegador
+    time.sleep(5)
     driver.switch_to.window(driver.window_handles[1])
     print("buscando pagina")
-    cufe=cufeexcel
-    # Esperar a que cargue la página
-    #time.sleep(2)
+    cufe = cufeexcel
     
 
     ###########################ESCRBIR DATOS EN EL INPUT INGRESAR CUFE ##############################
@@ -182,27 +180,19 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
             # Encontrar el input y escribir el valor ingresar el CUFE
             input_field = driver.find_element(By.XPATH, '//*[@id="DocumentKey"]')
             input_field.send_keys(cufe)
-
             break
         except Exception as e:
             print("ERROR NAVEGACION")
-            # Cierra el navegador al final, pase lo que pase
             driver.quit()
-            # Obtener la fecha y hora actual en el formato deseado
             fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-            # Crear el mensaje de log
             mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorNavegacion | ERROR | No pudo Abrir Navegacion CUFE: {cufe} Intentos: {i}!\n"
-
-            # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
             with open(logerrores, "a", encoding="utf-8") as archivo:
                 archivo.write(mensajeerror)
-            #continue
             if i == 3:
                 return None
-                
             else:
-                # Esperar a que cargue la página
-                time.sleep(2)
+                # Optimizado: reducir tiempo de espera de 2 a 1 segundo para reintento de CUFE
+                time.sleep(1)
                 continue
 
     ########################################BUSCAR IMAGEN CATCHAT#####################################
