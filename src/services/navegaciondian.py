@@ -60,6 +60,7 @@ primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 # Asignar los valores a variables (convertir rutas relativas a absolutas)
 ruta_carpeta = descargas
 rutaimagen = get_absolute_path(primer_objeto['rutaimagen'])
+rutaimagen2 = get_absolute_path(primer_objeto['rutaimagen2'])
 rutaimagenpdf = get_absolute_path(primer_objeto['rutaimagenPDF'])
 rutaimagenerror = get_absolute_path(primer_objeto['rutaimagenerror'])
 nombrecliente = primer_objeto['nombrecliente']
@@ -258,7 +259,7 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     time.sleep(3)
 
     # Intentar encontrar y clickear usando una sola captura para rutaimagen y opcional rutaimagen2
-    if not _search_and_click_templates(rutaimagen, primer_objeto.get('rutaimagen2'), threshold=0.8):
+    if not _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
         print("No se encontró la imagen con OpenCV.")
         # Cierra el navegador al final, pase lo que pase
         driver.quit()
@@ -328,7 +329,7 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
     # Esperar a que cargue la página
     time.sleep(6)
 
-    if _search_and_click_templates(rutaimagen, primer_objeto.get('rutaimagen2'), threshold=0.8):
+    if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
         print("Click realizado con OpenCV.")
         # Esperar a que cargue la página
         time.sleep(5)
@@ -397,8 +398,18 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
         
 
     ########################################BUSCAR IMAGEN ERROR#####################################
+    print("=== [DEBUG] INICIANDO BUSQUEDA DE IMAGEN ERROR ===")
+    
     # Esperar a que cargue la página
     time.sleep(3)
+
+    # Validar que la imagen de error existe
+    if not os.path.exists(rutaimagenerror):
+        print(f"[ERROR] No existe la imagen de error: {rutaimagenerror}")
+        driver.quit()
+        return None
+    
+    print(f"[DEBUG] Buscando imagen error en: {rutaimagenerror}")
 
     # Cargar imagen de plantilla
     template = cv2.imread(rutaimagenerror, cv2.IMREAD_COLOR)
@@ -414,18 +425,30 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
 
     # Umbral de coincidencia
     threshold = 0.8
+    print(f"[DEBUG] Coincidencia imagen error: {max_val:.3f} (umbral: {threshold})")
+    
     if max_val >= threshold:
+        print("[DEBUG] Imagen error encontrada, haciendo click...")
         center_x = max_loc[0] + w // 2
         center_y = max_loc[1] + h // 2
         pyautogui.click(center_x, center_y)
         print("Click realizado con OpenCV.")
-        ########################################BUSCAR IMAGEN CATCHAT#####################################
+        
+        ########################################BUSCAR IMAGEN CATCHAT (SEGUNDO)#####################################
+        print("=== [DEBUG] INICIANDO SEGUNDO CAPTCHA ===")
+        
         # Esperar a que cargue la página
         time.sleep(8)
+        print("[DEBUG] Esperando carga de pagina para segundo captcha...")
 
         # Cargar imagen de plantilla y buscar con la rutina optimizada (intenta rutaimagen y rutaimagen2)
         time.sleep(8)
-        if _search_and_click_templates(rutaimagen, primer_objeto.get('rutaimagen2'), threshold=0.8):
+        print(f"[DEBUG] Intentando segundo captcha con imagenes:")
+        print(f"  - Imagen 1: {rutaimagen}")
+        print(f"  - Imagen 2: {rutaimagen2}")
+        
+        if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
+            print("=== [SUCCESS] SEGUNDO CAPTCHA COMPLETADO ===")
             print("Click realizado con OpenCV.")
 
             ########################### BOTON DESCARGAR PDF###################################################
@@ -476,8 +499,12 @@ def procesarfactura(cufeexcel,lote,logeventos,logerrores):
                         archivo.write(mensajeerror)
                     return None
         else:
+            print("=== [ERROR] SEGUNDO CAPTCHA NO ENCONTRADO ===")
             print("No se encontró la imagen con OpenCV.")
-    
+            print("[DEBUG] El proceso continuara sin segundo captcha...")
+    else:
+        print("[DEBUG] No se encontro imagen de error, continuando sin segundo captcha...")
+        print(f"[DEBUG] Coincidencia: {max_val:.3f} < {threshold}")
         
 
     # Esperar a que cargue la página
