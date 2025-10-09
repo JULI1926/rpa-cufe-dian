@@ -14,45 +14,45 @@ from utils.path_utils import get_config_path, get_project_root, get_absolute_pat
 
 
 def read_variables(path_json=None):
+    """
+    Lee las variables globales desde el archivo de configuración.
+    Optimizado para deployment en Azure donde el archivo siempre está en config/
+    """
     usuario = getpass.getuser()
-    # If a path was provided, prefer it (it may be a path inserted by Electroneek)
-    candidates = []
-    if path_json:
-        candidates.append(path_json)
-
-    # Try config folder using utilities
-    config_path = get_config_path()
-    candidates.append(config_path)
-
-    # Try a VariablesGlobales.json next to this script (common during development)
-    script_local = os.path.join(os.path.dirname(__file__), 'VariablesGlobales.json')
-    candidates.append(script_local)
-
-    # Also try the DIAN folder in the repo root
-    project_root = get_project_root()
-    repo_path = os.path.join(project_root, 'VariablesGlobales.json')
-    candidates.append(repo_path)
-    repo_candidate = os.path.abspath(os.path.join(os.path.dirname(__file__), 'VariablesGlobales.json'))
-    candidates.append(repo_candidate)
-
-    # Find the first existing candidate
-    found = None
-    for p in candidates:
-        if p and os.path.isfile(p):
-            found = p
-            break
-
-    if not found:
-        msg = (
-            'VariablesGlobales.json no encontrada. Asegúrate de que existe y pasa su ruta como argumento:\n'
-            'python orquestador_neek.py "C:/ruta/a/VariablesGlobales.json"\n'
-            f'Busqué en: {candidates}\n'
+    
+    # Si se pasa una ruta específica (útil para testing), usarla
+    if path_json and os.path.isfile(path_json):
+        config_path = path_json
+        print(f"[DEBUG] Usando ruta personalizada: {config_path}")
+    else:
+        # En producción Azure, siempre usar la ubicación estándar
+        config_path = get_config_path()
+        print(f"[DEBUG] Usando ruta estándar: {config_path}")
+    
+    # Validar que el archivo existe
+    if not os.path.isfile(config_path):
+        raise FileNotFoundError(
+            f'VariablesGlobales.json no encontrada en: {config_path}\n'
+            f'Asegúrate de que el archivo existe en la carpeta config.\n'
+            f'Usuario actual: {usuario}'
         )
-        raise FileNotFoundError(msg)
-
-    with open(found, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    return data[0], found
+    
+    # Cargar y validar el archivo JSON
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Validar que tiene la estructura esperada
+        if not isinstance(data, list) or len(data) == 0:
+            raise ValueError("El archivo JSON debe contener al menos un objeto en un array")
+        
+        print(f"[SUCCESS] Configuración cargada desde: {config_path}")
+        return data[0], config_path
+        
+    except json.JSONDecodeError as e:
+        raise ValueError(f'Error al leer JSON desde {config_path}: {e}')
+    except Exception as e:
+        raise RuntimeError(f'Error inesperado al leer configuración: {e}')
 
 
 def enviar_correo_inicio(rutajson):
