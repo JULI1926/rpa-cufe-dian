@@ -33,11 +33,12 @@ def get_absolute_path(relative_path: Union[str, Path]) -> str:
         relative_path: Ruta relativa al directorio raíz del proyecto
         
     Returns:
-        str: Ruta absoluta
+        str: Ruta absoluta con separadores normalizados
     """
     project_root = get_project_root()
     absolute_path = project_root / relative_path
-    return str(absolute_path.resolve())
+    # Normalizar con separadores forward slash para compatibilidad
+    return str(absolute_path.resolve()).replace('\\', '/')
 
 def get_config_path(filename: str = "VariablesGlobales.json") -> str:
     """
