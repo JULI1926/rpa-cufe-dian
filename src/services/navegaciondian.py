@@ -27,15 +27,22 @@ from utils.path_utils import get_downloads_path, get_config_path, get_absolute_p
 usuario = getpass.getuser()
 fecha_actual = datetime.now().strftime('%Y%m%d')
 
-descargas = get_downloads_path()
-print("Ruta de Descargas:", descargas)
+# Usar la ruta temporal I:\ donde realmente se descargan los PDFs
+ruta_descargas_real = "I:\\"
+print("Ruta de Descargas configurada:", ruta_descargas_real)
 
-if not os.path.isdir(descargas):
+# También obtener la ruta estándar para otras operaciones
+descargas = get_downloads_path()
+print("Ruta de Descargas estándar:", descargas)
+
+if not os.path.isdir(ruta_descargas_real):
     try:
-        os.makedirs(descargas, exist_ok=True)
-        print(f'Creada carpeta de descargas: {descargas}')
+        os.makedirs(ruta_descargas_real, exist_ok=True)
+        print(f'Creada carpeta de descargas: {ruta_descargas_real}')
     except Exception as e:
-        raise FileNotFoundError(f'No se pudo crear la carpeta de descargas {descargas}: {e}')
+        print(f'Advertencia: No se pudo crear la carpeta {ruta_descargas_real}: {e}')
+        print('Usando carpeta de descargas estándar como fallback')
+        ruta_descargas_real = descargas
 
 rutajson = get_config_path()
 with open(rutajson, 'r') as archivo:
@@ -43,7 +50,7 @@ with open(rutajson, 'r') as archivo:
 
 primer_objeto = datos[0]
 
-ruta_carpeta = descargas
+ruta_carpeta = ruta_descargas_real  # Usar la ruta real donde se descargan los PDFs
 rutaimagen = get_absolute_path(primer_objeto['rutaimagen'])
 rutaimagen2 = get_absolute_path(primer_objeto['rutaimagen2'])
 rutaimagenpdf = get_absolute_path(primer_objeto['rutaimagenPDF'])
@@ -104,13 +111,16 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         documento_cliente_actual = primer_objeto.get('documentocliente', '000000000')
         print(f"[INFO] Usando datos del cliente desde configuracion: {nombre_cliente_actual} ({documento_cliente_actual})")
 
-    for archivo in os.listdir(ruta_carpeta):
-        if archivo.endswith(".pdf"):
-            ruta_archivo = os.path.join(ruta_carpeta, archivo)
-            os.remove(ruta_archivo)
-            #print(f"Eliminado: {archivo}")
-
-    #print("Eliminación completada.")
+    # Limpiar PDFs previos en la carpeta I:\
+    print(f"[DEBUG] Limpiando PDFs previos en {ruta_carpeta}")
+    try:
+        for archivo in os.listdir(ruta_carpeta):
+            if archivo.endswith(".pdf"):
+                ruta_archivo = os.path.join(ruta_carpeta, archivo)
+                os.remove(ruta_archivo)
+                print(f"[DEBUG] Eliminado PDF previo: {archivo}")
+    except Exception as e:
+        print(f"[DEBUG] Error limpiando PDFs previos: {e}")
     
     
     options = webdriver.ChromeOptions()
@@ -124,6 +134,21 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-browser-side-navigation')
     options.add_argument('--disable-gpu')
+    
+    # Configuración específica para descarga de PDFs
+    print(f"[DEBUG] Configurando descarga de PDFs en: {ruta_carpeta}")
+    download_prefs = {
+        "download.default_directory": ruta_carpeta,
+        "download.prompt_for_download": False,
+        "download.directory_upgrade": True,
+        "safebrowsing.enabled": True,
+        "plugins.always_open_pdf_externally": True,  # Forzar descarga en lugar de abrir en navegador
+        "plugins.plugins_disabled": ["Chrome PDF Viewer"]  # Deshabilitar visor de PDF integrado
+    }
+    options.add_experimental_option("prefs", download_prefs)
+    
+    # Asegurar que la carpeta existe
+    os.makedirs(ruta_carpeta, exist_ok=True)
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
@@ -248,31 +273,28 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         #CLIC EN IMAGEN DESACRAGR PDF
         pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
         if pos2 :
-            #Clic Coordenadas
-            #pyautogui.doubleClick(2691, 449)  # Doble clic en (500, 300)
-
-            #Click Imagen
             pyautogui.click(pos2)
             print("Imagen encontrada y clickeada Descargar PDF")
-            time.sleep(2)
+            print("[DEBUG] Esperando descarga del PDF...")
+            time.sleep(5)  # Esperar más tiempo para que se complete la descarga
         
         
     except Exception as e:
         search_button = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, "(//a[@class='downloadPDFUrl'])[1]"))
         )
-        #search_button.click()
-        # search_button = driver.find_element(By.XPATH, "(//a[@class='downloadPDFUrl'])[1]")
-        # search_button.click()
-        if search_button:  # Verifica si el elemento existe
+        if search_button:
             search_button.click()
-            #print("✅ Botón encontrado y clickeado")
+            print("[DEBUG] Botón de descarga clickeado via XPath, esperando descarga...")
+            time.sleep(5)  # Esperar descarga
         
         try:
             search_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "(//div[@id='html-gdoc']//a)[1]"))
             )
             search_button.click()
+            print("[DEBUG] Segundo botón de descarga clickeado, esperando descarga...")
+            time.sleep(5)  # Esperar descarga
             
         except Exception as e:
             print()
@@ -356,30 +378,30 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
                     #Click Imagen
                     pyautogui.click(pos2)
-                    print("Imagen encontrada y clickeada Descargar PDF")
-                    time.sleep(2)
+                    print("Imagen encontrada y clickeada Descargar PDF (segundo captcha)")
+                    print("[DEBUG] Esperando descarga del PDF después del segundo captcha...")
+                    time.sleep(5)
                 
                 
             except Exception as e:
                 search_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "(//a[@class='downloadPDFUrl'])[1]"))
                 )
-                #search_button.click()
-                # search_button = driver.find_element(By.XPATH, "(//a[@class='downloadPDFUrl'])[1]")
-                # search_button.click()
-                if search_button:  # Verifica si el elemento existe
+                if search_button:
                     search_button.click()
-                    #print("✅ Botón encontrado y clickeado")
+                    print("[DEBUG] Botón de descarga clickeado via XPath (segundo captcha), esperando descarga...")
+                    time.sleep(5)
                 
                 try:
                     search_button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, "(//div[@id='html-gdoc']//a)[1]"))
                     )
                     search_button.click()
+                    print("[DEBUG] Segundo botón de descarga clickeado (segundo captcha), esperando descarga...")
+                    time.sleep(5)
                     
                 except Exception as e:
                     print()
-                    # Cierra el navegador al final, pase lo que pase
                     driver.quit()
                     # Obtener la fecha y hora actual en el formato deseado
                     fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
@@ -703,30 +725,90 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     # print(f"IVA: {iva}")
     # print(f"Total: {total}")
     ###########################PDF BASE 64 ######################################
-    # Listar archivos en la carpeta y filtrar los PDF
-    archivos_pdf = [archivo for archivo in os.listdir(descargas) if archivo.endswith(".pdf")]
+    print(f"[DEBUG] Buscando archivo PDF específico: {cufe}.pdf en {ruta_carpeta}")
+    
+    # Función para esperar descarga de PDF específico con timeout
+    def esperar_descarga_pdf_especifico(directorio, nombre_cufe, timeout_segundos=15):
+        """Espera hasta que aparezca el archivo PDF específico del CUFE o hasta timeout"""
+        import time
+        tiempo_inicio = time.time()
+        nombre_archivo_esperado = f"{nombre_cufe}.pdf"
+        ruta_archivo_esperado = os.path.join(directorio, nombre_archivo_esperado)
+        
+        print(f"[DEBUG] Esperando archivo: {nombre_archivo_esperado}")
+        
+        while time.time() - tiempo_inicio < timeout_segundos:
+            try:
+                # Buscar archivo exacto
+                if os.path.exists(ruta_archivo_esperado):
+                    print(f"[DEBUG] PDF específico encontrado después de {time.time() - tiempo_inicio:.1f} segundos")
+                    return [nombre_archivo_esperado]
+                
+                # Buscar archivos que contengan el CUFE (incluyendo con sufijos como (1), (2), etc.)
+                archivos_pdf = [archivo for archivo in os.listdir(directorio) if archivo.endswith(".pdf")]
+                for archivo in archivos_pdf:
+                    # Verificar si el archivo contiene el CUFE al inicio
+                    if archivo.startswith(nombre_cufe):
+                        print(f"[DEBUG] PDF con CUFE encontrado (con sufijo): {archivo}")
+                        return [archivo]
+                
+                if archivos_pdf and tiempo_inicio % 3 == 0:  # Log cada 3 segundos
+                    print(f"[DEBUG] PDFs disponibles: {len(archivos_pdf)} archivos, esperando {nombre_archivo_esperado}")
+                
+            except Exception as e:
+                print(f"[DEBUG] Error accediendo a directorio {directorio}: {e}")
+                break
+            time.sleep(1)  # Esperar 1 segundo entre verificaciones
+        
+        print(f"[DEBUG] Timeout alcanzado ({timeout_segundos}s) esperando descarga de PDF específico")
+        return []
+    
+    # Esperar a que se descargue el PDF específico del CUFE
+    archivos_pdf = esperar_descarga_pdf_especifico(ruta_carpeta, cufe)
+    
+    print(f"[DEBUG] Archivos PDF encontrados: {len(archivos_pdf)}")
+    if archivos_pdf:
+        print(f"[DEBUG] Lista de PDFs: {archivos_pdf}")
+    
+    # Inicializar variable base64_pdf
+    base64_pdf = 'No se encontro PDF'
 
     # Verificar si hay archivos PDF
     if archivos_pdf:
-        for archivo in archivos_pdf:
-            #print(f"Archivo encontrado: {archivo}")
-            ruta_pdf2=descargas+"/"+archivo
-            # Leer el archivo en modo binario y convertirlo a Base64
-            with open(ruta_pdf2, "rb") as archivo:
-                base64_pdf = base64.b64encode(archivo.read()).decode("utf-8")
-
-            # Imprimir la cadena Base64 (puede ser muy larga)
-            #print(base64_pdf)
-
-            # Guardar la cadena Base64 en un archivo
-            with open(rutapdfbase64, "w", encoding="utf-8") as archivo_salida:
-                archivo_salida.write(base64_pdf)
-        time.sleep(1)
-
-    #         print("Conversión completada y guardada en documento_base64.txt")
+        try:
+            # Tomar el primer PDF encontrado
+            archivo_pdf = archivos_pdf[0]
+            print(f"[DEBUG] Procesando PDF: {archivo_pdf}")
+            ruta_pdf2 = os.path.join(ruta_carpeta, archivo_pdf)
+            
+            # Verificar que el archivo existe y no está vacío
+            if os.path.exists(ruta_pdf2) and os.path.getsize(ruta_pdf2) > 0:
+                print(f"[DEBUG] Archivo PDF válido, tamaño: {os.path.getsize(ruta_pdf2)} bytes")
+                
+                # Leer el archivo en modo binario y convertirlo a Base64
+                with open(ruta_pdf2, "rb") as archivo:
+                    contenido_pdf = archivo.read()
+                    base64_pdf = base64.b64encode(contenido_pdf).decode("utf-8")
+                
+                print(f"[DEBUG] PDF convertido a base64, longitud: {len(base64_pdf)} caracteres")
+            else:
+                print(f"[ERROR] Archivo PDF no válido o vacío: {ruta_pdf2}")
+                base64_pdf = 'PDF vacio o no valido'
+                
+        except Exception as e:
+            print(f"[ERROR] Error procesando PDF: {e}")
+            base64_pdf = f'Error procesando PDF: {str(e)}'
     else:
-        #print("No se encontraron archivos PDF en la carpeta Descargas.")
-        base64_pdf='No se encontro PDF'
+        print(f"[WARNING] No se encontró el archivo PDF específico {cufe}.pdf en la carpeta de descargas")
+        # Intentar buscar cualquier PDF como fallback
+        try:
+            todos_los_pdfs = [archivo for archivo in os.listdir(ruta_carpeta) if archivo.endswith(".pdf")]
+            if todos_los_pdfs:
+                print(f"[DEBUG] PDFs disponibles como fallback: {todos_los_pdfs}")
+            base64_pdf = 'No se encontro PDF especifico'
+        except Exception as e:
+            print(f"[DEBUG] Error listando PDFs: {e}")
+            base64_pdf = 'No se encontro PDF'
 
 
     ###########################CREAR JSON ######################################
@@ -850,14 +932,30 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
    
     ################################ELIMINAR ARCHIVOS PDF ########################################
 
-
-    # Recorrer la carpeta y eliminar los archivos PDF
-    for archivo in os.listdir(ruta_carpeta):
-        if archivo.endswith(".pdf"):  # Verifica si es un archivo PDF
+    # Eliminar específicamente el PDF del CUFE procesado
+    nombre_pdf_cufe = f"{cufe}.pdf"
+    ruta_pdf_cufe = os.path.join(ruta_carpeta, nombre_pdf_cufe)
+    
+    try:
+        if os.path.exists(ruta_pdf_cufe):
             time.sleep(1)
-            ruta_archivo = os.path.join(ruta_carpeta, archivo)
-            os.remove(ruta_archivo)  # Elimina el archivo
-            #print(f"Eliminado: {archivo}")
+            os.remove(ruta_pdf_cufe)
+            print(f"[DEBUG] Eliminado PDF específico: {nombre_pdf_cufe}")
+        else:
+            print(f"[DEBUG] PDF específico no encontrado para eliminar: {nombre_pdf_cufe}")
+    except Exception as e:
+        print(f"[DEBUG] Error eliminando PDF específico: {e}")
+    
+    # También limpiar otros PDFs que puedan haber quedado (backup cleanup)
+    try:
+        for archivo in os.listdir(ruta_carpeta):
+            if archivo.endswith(".pdf"):
+                time.sleep(1)
+                ruta_archivo = os.path.join(ruta_carpeta, archivo)
+                os.remove(ruta_archivo)
+                print(f"[DEBUG] Eliminado PDF adicional: {archivo}")
+    except Exception as e:
+        print(f"[DEBUG] Error en limpieza adicional de PDFs: {e}")
 
     # =====================================================
     # PROCESAMIENTO COMPLETADO EXITOSAMENTE
