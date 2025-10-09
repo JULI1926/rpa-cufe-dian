@@ -44,7 +44,10 @@ app = FastAPI(
     },
     license_info={
         "name": "MIT"
-    }
+    },
+    # Deshabilitar ReDoc manteniendo solo Swagger UI
+    docs_url="/docs",
+    redoc_url=None  # Esto deshabilita completamente ReDoc
 )
 
 # Configurar CORS
@@ -90,9 +93,9 @@ async def general_exception_handler(request, exc):
     )
 
 if __name__ == "__main__":
-    print("🚀 Iniciando servidor RPA DIAN API...")
-    print("📚 Documentación disponible en: http://localhost:8000/docs")
-    print("❤️  Health check en: http://localhost:8000/health")
+    print("[INFO] Iniciando servidor RPA DIAN API...")
+    print("[DOCS] Documentacion disponible en: http://localhost:8000/docs")
+    print("[HEALTH] Health check en: http://localhost:8000/health")
     
     uvicorn.run(
         "main:app", 

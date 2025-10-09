@@ -20,7 +20,7 @@ class ResponseBase(BaseModel):
          description="Ruta raíz que redirige a la documentación Swagger")
 async def root():
     """Ruta raíz del API"""
-    return {"message": "RPA DIAN API", "docs": "/docs", "redoc": "/redoc"}
+    return {"message": "RPA DIAN API", "docs": "/docs"}
 
 @router.get("/health", 
          response_model=ResponseBase,

@@ -13,7 +13,6 @@ if __name__ == "__main__":
     
     print("[INFO] Iniciando servidor RPA DIAN API...")
     print("[DOCS] Documentacion disponible en: http://localhost:8000/docs")
-    print("[DOCS] Documentacion alternativa en: http://localhost:8000/redoc")
     print("[HEALTH] Health check en: http://localhost:8000/health")
     print("[CONFIG] Configuracion actual: config/VariablesGlobales.json")
     print("")
@@ -28,7 +27,7 @@ if __name__ == "__main__":
             log_level="info"
         )
     except KeyboardInterrupt:
-        print("\n👋 Servidor detenido por el usuario")
+        print("\n[INFO] Servidor detenido por el usuario")
     except Exception as e:
-        print(f"❌ Error iniciando servidor: {e}")
+        print(f"[ERROR] Error iniciando servidor: {e}")
         sys.exit(1)
