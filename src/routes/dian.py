@@ -28,9 +28,7 @@ router = APIRouter(
 # Modelos Pydantic
 class ProcesarRequest(BaseModel):
     path_json: Optional[str] = Field(
-        None, 
-        description="Ruta personalizada al archivo VariablesGlobales.json (opcional)",
-        example="C:/ruta/personalizada/VariablesGlobales.json"
+        None               
     )
 
 class ResponseBase(BaseModel):
@@ -65,7 +63,7 @@ dian_controller = DianController()
 async def procesar_facturas(request: ProcesarRequest):
     """Ejecutar el orquestador DIAN para procesar facturas"""
     try:
-        result = await dian_controller.procesar_facturas(request.path_json)
+        result = await dian_controller.procesar_facturas()
         return result
     except Exception as e:
         logger.error(f"Error en procesar_facturas: {e}")

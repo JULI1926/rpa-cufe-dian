@@ -8,24 +8,20 @@ from datetime import datetime
 import os
 import sys
 
-# Importar utilidades de rutas
-from path_utils import get_downloads_path, get_logs_dir, get_absolute_path
-
 # Obtener la fecha actual en formato YYYYMMDD
 fecha_actual = datetime.now().strftime('%Y%m%d')
 
-#RUTAS ARCHIVOS usando utilidades
-descargas = get_downloads_path()
+# Usar rutas relativas directas
+descargas = "./downloads"
 print("Ruta de Descargas:", descargas)
 # Ruta del archivo PDF
-#ruta_pdf = "DIAN/documento.pdf"
-rutaimagen = get_absolute_path("config/catchat.png")
+rutaimagen = "./config/catchat.png"
 # Ruta donde se encuentran los archivos PDF
 ruta_carpeta = descargas
 nombrecliente='Alejandro Bustos'
 documentocliente='1054990077'
-# RUTA LOGS: usar utilidades de rutas
-base_logs = get_logs_dir()
+# RUTA LOGS: usar ruta relativa
+base_logs = "./logs"
 os.makedirs(base_logs, exist_ok=True)
 logeventos = os.path.join(base_logs, f"LogEventos{fecha_actual}.txt")
 logerrores = os.path.join(base_logs, f"LogErrores{fecha_actual}.txt")

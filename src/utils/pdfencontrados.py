@@ -2,22 +2,19 @@ import os
 import json
 import base64
 
-# Importar utilidades de rutas
-from path_utils import get_downloads_path, get_config_path, get_absolute_path
-
-#RUTAS ARCHIVOS usando utilidades
-descargas = get_downloads_path()
+# Usar rutas relativas directas
+descargas = "./downloads"  # Ruta relativa a downloads
 print("Ruta de Descargas:", descargas)
 
-# Leer el archivo JSON usando utilidades de rutas
-rutajson = get_config_path()
+# Leer el archivo JSON usando ruta relativa
+rutajson = "./config/VariablesGlobales.json"
 with open(rutajson, 'r') as archivo:
     datos = json.load(archivo)
 
 # Acceder al primer elemento de la lista
 primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 
-rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
+rutapdfbase64 = primer_objeto['rutapdfbase64']  # Usar directamente la ruta del JSON
 
 
 ###########################PDF BASE 64 ######################################

@@ -21,42 +21,56 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from gateways.ApiDianGateway import post_facturas 
-from utils.path_utils import get_downloads_path, get_config_path, get_absolute_path
+from gateways.ApiDianGateway import post_facturas
 
-usuario = getpass.getuser()
-fecha_actual = datetime.now().strftime('%Y%m%d')
+def init_config():
+    """Inicializar configuración del módulo"""
+    global usuario, fecha_actual, ruta_descargas_real
+    
+    usuario = getpass.getuser()
+    fecha_actual = datetime.now().strftime('%Y%m%d')
 
-# Usar la ruta temporal I:\ donde realmente se descargan los PDFs
-ruta_descargas_real = "I:\\"
-print("Ruta de Descargas configurada:", ruta_descargas_real)
+    # Usar la ruta temporal I:\ donde realmente se descargan los PDFs
+    ruta_descargas_real = "I:\\"
+    print("Ruta de Descargas configurada:", ruta_descargas_real)
 
-# También obtener la ruta estándar para otras operaciones
-descargas = get_downloads_path()
-print("Ruta de Descargas estándar:", descargas)
+    if not os.path.isdir(ruta_descargas_real):
+        try:
+            os.makedirs(ruta_descargas_real, exist_ok=True)
+            print(f'Creada carpeta de descargas: {ruta_descargas_real}')
+        except Exception as e:
+            print(f'Advertencia: No se pudo crear la carpeta {ruta_descargas_real}: {e}')
+    
+    return ruta_descargas_real
 
-if not os.path.isdir(ruta_descargas_real):
-    try:
-        os.makedirs(ruta_descargas_real, exist_ok=True)
-        print(f'Creada carpeta de descargas: {ruta_descargas_real}')
-    except Exception as e:
-        print(f'Advertencia: No se pudo crear la carpeta {ruta_descargas_real}: {e}')
-        print('Usando carpeta de descargas estándar como fallback')
-        ruta_descargas_real = descargas
+def load_config():
+    """Cargar configuración desde JSON"""
+    rutajson = "./config/VariablesGlobales.json"
+    with open(rutajson, 'r') as archivo:
+        datos = json.load(archivo)
 
-rutajson = get_config_path()
-with open(rutajson, 'r') as archivo:
-    datos = json.load(archivo)
+    primer_objeto = datos[0]
+    
+    # Inicializar configuración si no está inicializada
+    if ruta_descargas_real is None:
+        init_config()
 
-primer_objeto = datos[0]
+    config = {
+        'ruta_carpeta': ruta_descargas_real,  # Usar la ruta real donde se descargan los PDFs
+        'rutaimagen': os.path.join("./config", primer_objeto['rutaimagen']),
+        'rutaimagen2': os.path.join("./config", primer_objeto['rutaimagen2']),
+        'rutaimagenpdf': os.path.join("./config", primer_objeto['rutaimagenPDF']),
+        'rutaimagenerror': os.path.join("./config", primer_objeto['rutaimagenerror']),
+        'rutatxt': os.path.join("./config", primer_objeto['rutaloop']),
+        'rutapdfbase64': os.path.join("./config", primer_objeto['rutapdfbase64'])
+    }
+    
+    return config
 
-ruta_carpeta = ruta_descargas_real  # Usar la ruta real donde se descargan los PDFs
-rutaimagen = get_absolute_path(primer_objeto['rutaimagen'])
-rutaimagen2 = get_absolute_path(primer_objeto['rutaimagen2'])
-rutaimagenpdf = get_absolute_path(primer_objeto['rutaimagenPDF'])
-rutaimagenerror = get_absolute_path(primer_objeto['rutaimagenerror'])
-rutatxt = get_absolute_path(primer_objeto['rutaloop'])
-rutapdfbase64 = get_absolute_path(primer_objeto['rutapdfbase64'])
+# Variables globales que se inicializarán cuando sea necesario
+usuario = None
+fecha_actual = None
+ruta_descargas_real = None
 
 
 def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
@@ -102,6 +116,22 @@ def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
 
 
 def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, client_document=None):
+    # Cargar configuración al inicio
+    config = load_config()
+    ruta_carpeta = config['ruta_carpeta']
+    rutaimagen = config['rutaimagen']
+    rutaimagen2 = config['rutaimagen2']
+    rutaimagenpdf = config['rutaimagenpdf']
+    rutaimagenerror = config['rutaimagenerror']
+    rutatxt = config['rutatxt']
+    rutapdfbase64 = config['rutapdfbase64']
+    
+    # Cargar también primer_objeto para usar en el resto de la función
+    rutajson = "./config/VariablesGlobales.json"
+    with open(rutajson, 'r') as archivo:
+        datos = json.load(archivo)
+    primer_objeto = datos[0]
+    
     if client_name and client_document:
         nombre_cliente_actual = client_name
         documento_cliente_actual = client_document
@@ -876,7 +906,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     print(f"[INFO] Enviando datos al endpoint para CUFE: {cufe[:20]}...")
     
     # Guardar la información de la factura procesada en un archivo acumulativo TXT (solo para auditoría)
-    config_dir = get_absolute_path("config")
+    config_dir = "./config"
     ruta_txt_facturas = os.path.join(config_dir, "facturas_procesadas.txt")
     with open(ruta_txt_facturas, "a", encoding="utf-8") as archivo_txt:
         archivo_txt.write(json.dumps(datos, ensure_ascii=False))
