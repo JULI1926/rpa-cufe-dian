@@ -14,8 +14,6 @@ with open(rutajson, 'r') as archivo:
 # Acceder al primer elemento de la lista
 primer_objeto = datos[0]  # Asegúrate de que el JSON tiene al menos un objeto
 
-rutapdfbase64 = primer_objeto['rutapdfbase64']  # Usar directamente la ruta del JSON
-
 
 ###########################PDF BASE 64 ######################################
 # Listar archivos en la carpeta y filtrar los PDF
@@ -31,8 +29,6 @@ if archivos_pdf:
             base64_pdf = base64.b64encode(archivo.read()).decode("utf-8")
 
         # Imprimir la cadena Base64 (puede ser muy larga)
-        #print(base64_pdf)
-
-        # Guardar la cadena Base64 en un archivo
-        with open(rutapdfbase64, "w", encoding="utf-8") as archivo_salida:
-            archivo_salida.write(base64_pdf)
+        print("Base64 generado exitosamente, longitud:", len(base64_pdf))
+        
+        # Nota: Ya no se guarda en archivo, se procesa directamente en memoria

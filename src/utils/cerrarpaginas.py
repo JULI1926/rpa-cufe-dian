@@ -1,6 +1,3 @@
-
-
-
 import pygetwindow as gw
 import pyautogui
 import time

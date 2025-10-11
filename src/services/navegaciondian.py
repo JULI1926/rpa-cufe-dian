@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from gateways.ApiDianGateway import post_facturas
 import time
 import pyautogui
 import os
@@ -20,8 +21,6 @@ from datetime import datetime
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
-
-from gateways.ApiDianGateway import post_facturas
 
 def init_config():
     """Inicializar configuración del módulo"""
@@ -60,9 +59,8 @@ def load_config():
         'rutaimagen': os.path.join("./config", primer_objeto['rutaimagen']),
         'rutaimagen2': os.path.join("./config", primer_objeto['rutaimagen2']),
         'rutaimagenpdf': os.path.join("./config", primer_objeto['rutaimagenPDF']),
-        'rutaimagenerror': os.path.join("./config", primer_objeto['rutaimagenerror']),
-        'rutatxt': os.path.join("./config", primer_objeto['rutaloop']),
-        'rutapdfbase64': os.path.join("./config", primer_objeto['rutapdfbase64'])
+        'rutaimagenerror': os.path.join("./config", primer_objeto['rutaimagenerror'])
+        
     }
     
     return config
@@ -123,8 +121,18 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     rutaimagen2 = config['rutaimagen2']
     rutaimagenpdf = config['rutaimagenpdf']
     rutaimagenerror = config['rutaimagenerror']
-    rutatxt = config['rutatxt']
-    rutapdfbase64 = config['rutapdfbase64']
+
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("detach", True)
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument('--disable-extensions')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-infobars')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-browser-side-navigation')
+    options.add_argument('--disable-gpu')
     
     # Cargar también primer_objeto para usar en el resto de la función
     rutajson = "./config/VariablesGlobales.json"
@@ -150,23 +158,13 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
                 os.remove(ruta_archivo)
                 print(f"[DEBUG] Eliminado PDF previo: {archivo}")
     except Exception as e:
-        print(f"[DEBUG] Error limpiando PDFs previos: {e}")
+        print(f"[DEBUG] Error limpiando PDFs previos: {e}")   
     
     
-    options = webdriver.ChromeOptions()
-    options.add_experimental_option("detach", True)
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument('--disable-extensions')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-infobars')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-browser-side-navigation')
-    options.add_argument('--disable-gpu')
     
     # Configuración específica para descarga de PDFs
     print(f"[DEBUG] Configurando descarga de PDFs en: {ruta_carpeta}")
+
     download_prefs = {
         "download.default_directory": ruta_carpeta,
         "download.prompt_for_download": False,
@@ -204,13 +202,12 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             if i == 3:
                 return None
             else:
-                # Optimizado: reducir tiempo de espera de 2 a 1 segundo para reintento de CUFE
                 time.sleep(1)
                 continue
 
     
 
-    ########################################BUSCAR IMAGEN CATCHAT#####################################
+    ########################################BUSCAR IMAGEN CAPTCHA#####################################
     # Esperar a que cargue la página
     time.sleep(3)
 
@@ -237,34 +234,24 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         search_button = driver.find_element(By.XPATH, '//*[@id="search-document-form"]/button')
         search_button.click()
     except Exception as e:
-        # Cierra el navegador al final, pase lo que pase
-            driver.quit()
-            # Obtener la fecha y hora actual en el formato deseado
-            fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-            # Crear el mensaje de log
-            mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Boton No encontrado Buscar Pagina Inicio DIAN: | Fin  Error CUFE: {cufe} !\n"
+        driver.quit()
+        fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
+        mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Boton No encontrado Buscar Pagina Inicio DIAN: | Fin  Error CUFE: {cufe} !\n"
 
-            # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
-            with open(logerrores, "a", encoding="utf-8") as archivo:
-                archivo.write(mensajeerror)
-            return None
+        with open(logerrores, "a", encoding="utf-8") as archivo:
+            archivo.write(mensajeerror)
+        return None
 
     ###########################EXTRAER INPUT###################################################
-    #Dar clic en Boton Buscar BOTON PDF
     time.sleep(4)
-    # Obtener el texto del elemento usando XPath
     try:
         elemento = driver.find_element(By.XPATH, '//*[@id="search-document-form"]/div[2]/span')
-        texto = elemento.text  # Obtener el contenido del <span>
-        # CUFE no encontrado en DIAN - ya no manipulamos Excel, solo registramos el error
+        texto = elemento.text
         if "Documento no encontrado" in texto:
             driver.quit()
-            # Obtener la fecha y hora actual en el formato deseado
             fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-            # Crear el mensaje de log
             mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Cufe No encontrado - No existe en los registros de la DIAN: | Fin Error CUFE: {cufe} !\n"
 
-            # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
             with open(logerrores, "a", encoding="utf-8") as archivo:
                 archivo.write(mensajeerror)
             return None
@@ -278,35 +265,29 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
     if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
         print("Click realizado con OpenCV.")
-        # Esperar a que cargue la página
         time.sleep(5)
     else:
         print("No se encontró la imagen con OpenCV.")
-        # Cierra el navegador al final, pase lo que pase
         driver.quit()
-        # Obtener la fecha y hora actual en el formato deseado
         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-        # Crear el mensaje de log
         mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Imagen No encontrada Catchat Try: | Fin  Error CUFE: {cufe} !\n"
 
-        # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
         with open(logerrores, "a", encoding="utf-8") as archivo:
             archivo.write(mensajeerror)
         return None
 
    
-    ########################### BOTON DESCARGAR PDF###################################################
-     #Dar clic en Boton Buscar BOTON PDF
+    ########################### DESCARGAR PDF ###################################################
     time.sleep(2)
     
     try:
-        #CLIC EN IMAGEN DESACRAGR PDF
+        #CLIC EN IMAGEN DESCARGAR PDF
         pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
         if pos2 :
             pyautogui.click(pos2)
             print("Imagen encontrada y clickeada Descargar PDF")
             print("[DEBUG] Esperando descarga del PDF...")
-            time.sleep(5)  # Esperar más tiempo para que se complete la descarga
+            time.sleep(5)
         
         
     except Exception as e:
@@ -316,7 +297,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         if search_button:
             search_button.click()
             print("[DEBUG] Botón de descarga clickeado via XPath, esperando descarga...")
-            time.sleep(5)  # Esperar descarga
+            time.sleep(5)
         
         try:
             search_button = WebDriverWait(driver, 10).until(
@@ -324,7 +305,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             )
             search_button.click()
             print("[DEBUG] Segundo botón de descarga clickeado, esperando descarga...")
-            time.sleep(5)  # Esperar descarga
+            time.sleep(5)
             
         except Exception as e:
             print()
@@ -344,10 +325,8 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     ########################################BUSCAR IMAGEN ERROR#####################################
     print("=== [DEBUG] INICIANDO BUSQUEDA DE IMAGEN ERROR ===")
     
-    # Esperar a que cargue la página
     time.sleep(3)
 
-    # Validar que la imagen de error existe
     if not os.path.exists(rutaimagenerror):
         print(f"[ERROR] No existe la imagen de error: {rutaimagenerror}")
         driver.quit()
@@ -355,19 +334,15 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     
     print(f"[DEBUG] Buscando imagen error en: {rutaimagenerror}")
 
-    # Cargar imagen de plantilla
     template = cv2.imread(rutaimagenerror, cv2.IMREAD_COLOR)
     w, h = template.shape[1], template.shape[0]
 
-    # Capturar pantalla
     screenshot = pyautogui.screenshot()
     screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
 
-    # Usar coincidencia de plantilla
     res = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
-    # Umbral de coincidencia
     threshold = 0.8
     print(f"[DEBUG] Coincidencia imagen error: {max_val:.3f} (umbral: {threshold})")
     
@@ -378,14 +353,12 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         pyautogui.click(center_x, center_y)
         print("Click realizado con OpenCV.")
         
-        ########################################BUSCAR IMAGEN CATCHAT (SEGUNDO)#####################################
+        ########################################SEGUNDO CAPTCHA#####################################
         print("=== [DEBUG] INICIANDO SEGUNDO CAPTCHA ===")
         
-        # Esperar a que cargue la página
         time.sleep(8)
         print("[DEBUG] Esperando carga de pagina para segundo captcha...")
 
-        # Cargar imagen de plantilla y buscar con la rutina optimizada (intenta rutaimagen y rutaimagen2)
         time.sleep(8)
         print(f"[DEBUG] Intentando segundo captcha con imagenes:")
         print(f"  - Imagen 1: {rutaimagen}")
@@ -395,18 +368,12 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             print("=== [SUCCESS] SEGUNDO CAPTCHA COMPLETADO ===")
             print("Click realizado con OpenCV.")
 
-            ########################### BOTON DESCARGAR PDF###################################################
-            #Dar clic en Boton Buscar BOTON PDF
+            ########################### DESCARGAR PDF (segundo captcha) ###################################################
             time.sleep(4)
             
             try:
-                #CLIC EN IMAGEN DESACRAGR PDF
                 pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
                 if pos2 :
-                    #Clic Coordenadas
-                    #pyautogui.doubleClick(2691, 449)  # Doble clic en (500, 300)
-
-                    #Click Imagen
                     pyautogui.click(pos2)
                     print("Imagen encontrada y clickeada Descargar PDF (segundo captcha)")
                     print("[DEBUG] Esperando descarga del PDF después del segundo captcha...")
@@ -433,12 +400,9 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
                 except Exception as e:
                     print()
                     driver.quit()
-                    # Obtener la fecha y hora actual en el formato deseado
                     fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-                    # Crear el mensaje de log
                     mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Boton No encontrado Descargar PDF Pagina DIAN: | Fin  Error CUFE: {cufe} !\n"
 
-                    # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
                     with open(logerrores, "a", encoding="utf-8") as archivo:
                         archivo.write(mensajeerror)
                     return None
@@ -451,59 +415,45 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         print(f"[DEBUG] Coincidencia: {max_val:.3f} < {threshold}")
         
 
-    # Esperar a que cargue la página
     time.sleep(2)
 
-    #os.system(f"taskkill /f /im AcroRd32.exe")  # Cierra Adobe Reader (si se usa)
-    #print("El PDF ha sido bloqueado para que no se abra automáticamente.")
+    ################################EXTRAER EVENTOS DE ACUSE ########################################
 
-    ################################EXTRAER VALORES ACUSE ########################################
-
-    #CICLO PARA ENCONTRAR EL NUMERO DEL EVENTO
     suma=1
     contador = 0
     acuse=False
     reclamo=False
     recibo=False
     aceptacion=False
+    
     while contador < 4:
         print("Suma:",suma)
-        # Extraer el dato con XPath
-        # Construir el XPath dinámicamente con f-string
         xpath = f"(//td[@class='text-center'])[{suma}]"
         elemento=''
         texto_elemento=''
         try:
-            #elemento = driver.find_element(By.XPATH, "(//td[@class='text-center'])[1]")
             elemento = driver.find_element(By.XPATH, xpath)
-            #print("Elemento encontrado: ",elemento.text)
-            texto_elemento = elemento.text  # Guardar el texto en una variable
+            texto_elemento = elemento.text
             texto_elemento=str(texto_elemento)
             print("Elemento encontrado: ",texto_elemento)
 
-            # texto_elemento = texto_elemento.strip()
-            #print("Elemento encontrado:-",texto_elemento,"-")
             if texto_elemento in "":
                 print("Entro al if",texto_elemento)
             else:
                 print("else ",texto_elemento)
-                #ACUSE
                 if '030' in texto_elemento:
                     acuse=True
-            
-                #RECLAMO
+        
                 if  '031' in texto_elemento:
                     reclamo=True
                     print("encontrado reclamo: ",texto_elemento)
-            
-                #RECIBIDO
+        
                 if '032' in texto_elemento:
                     recibo=True
-                
-                #ACEPTACION
+            
                 if '033' in texto_elemento:
                     aceptacion=True
-                
+            
         
         except Exception as e:
             print("No se encontró el dato.")
@@ -515,22 +465,17 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     ################################FOLIOS########################################
 
     try:
-        #EXTRAER DATOS FOLIO 1 DATOS DE LA FACTURA
         elemento1 = driver.find_element(By.XPATH, "//div[@class='col-md-4'][1]")
-        #print("Elemento encontrado1: ",elemento1.text)
-        texto_elemento1 = elemento1.text  # Guardar el texto en una variable
+        texto_elemento1 = elemento1.text
 
-        # Expresiones regulares para extraer datos
         patron_serie = r"Serie:\s*([\w\d]+)"
         patron_folio = r"Folio:\s*([\d]+)"
         patron_fecha = r"Fecha de emisión de la factura Electrónica:\s*([\d-]+)"
 
-        # Buscar coincidencias en el texto
         match_serie = re.search(patron_serie, texto_elemento1)
         match_folio = re.search(patron_folio, texto_elemento1)
         match_fecha = re.search(patron_fecha, texto_elemento1)
 
-        # Asignar valores a variables
         serie = match_serie.group(1) if match_serie else None
         folio = match_folio.group(1) if match_folio else None
         fecha_emision = match_fecha.group(1) if match_fecha else None       
@@ -544,7 +489,6 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     
     if fecha_emision is None:
         print("La variable FECHA es None")
-        # Expresión regular para capturar el número después de "N°. Identificación:"
         match = re.search(r"Fecha de emisión del documento soporte:\s*([\d-]+)", texto_elemento1)
 
         if match:
@@ -559,126 +503,74 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     ################################ DATOS EMISOR ########################################
 
     try:
-
-        #EXTRAER DATOS FOLIO 2 DATOS DEL EMISOR
         elemento2 = driver.find_element(By.XPATH, "//div[@class='row line-bottom row-fe-details'][2]/div[@class='col-md-4'][1]/p")
-        #print("Elemento encontrado1: ",elemento2.text)
-        texto_elemento2 = elemento2.text  # Guardar el texto en una variable
+        texto_elemento2 = elemento2.text
 
-
-        # Expresión regular para extraer NIT y Nombre
         patron_nit = r"NIT:\s*([\d]+)"
         patron_nombre = r"Nombre:\s*(.+)"
 
-        # Buscar coincidencias en el texto
         match_nit = re.search(patron_nit, texto_elemento2)
         match_nombre = re.search(patron_nombre, texto_elemento2)
 
-        # Asignar valores a variables
         nit = match_nit.group(1) if match_nit else None
         nombre = match_nombre.group(1) if match_nombre else None
-
-        # Mostrar resultados
-        # print(f"NIT Emisor: {nit}")
-        # print(f"Nombre Emisor: {nombre}")
     
     except Exception as e:
-        #EXTRAER DATOS FOLIO 2 DATOS DEL EMISOR
         elemento2 = driver.find_element(By.XPATH, "//div[@class='col-md-3'][1]/p")
-        #print("Elemento encontrado1: ",elemento2.text)
-        texto_elemento2 = elemento2.text  # Guardar el texto en una variable
+        texto_elemento2 = elemento2.text
 
-
-        # Expresión regular para extraer NIT y Nombre
         patron_nit = r"NIT:\s*([\d]+)"
         patron_nombre = r"Nombre:\s*(.+)"
 
-        # Buscar coincidencias en el texto
         match_nit = re.search(patron_nit, texto_elemento2)
         match_nombre = re.search(patron_nombre, texto_elemento2)
 
-        # Asignar valores a variables
         nit = match_nit.group(1) if match_nit else None
         nombre = match_nombre.group(1) if match_nombre else None
-
-        # Mostrar resultados
-        # print(f"NIT Emisor: {nit}")
-        # print(f"Nombre Emisor: {nombre}")
-        # try:
-        #     nit='Revisar Xpath'
-        #     nombre='Revisar Xpath'
-        # except Exception as e:
-        #     print()
 
     ################################ DATOS RECEPTOR ########################################
 
     try:
-        #EXTRAER DATOS FOLIO 3 DATOS DEL RECEPTOR
         elemento3 = driver.find_element(By.XPATH, "//div[@class='col-md-4'][2]")
-        #print("Elemento encontrado2: ",elemento3.text)
-        texto_elemento3 = elemento3.text  # Guardar el texto en una variable
+        texto_elemento3 = elemento3.text
 
-        # Expresiones regulares para extraer NIT y Nombre
         patron_nit = r"NIT:\s*([\d]+)"
         patron_nombre = r"Nombre:\s*(.+)"
 
-        # Buscar coincidencias en el texto
         match_nit = re.search(patron_nit, texto_elemento3)
         match_nombre = re.search(patron_nombre, texto_elemento3)
 
-        # Asignar valores a variables
         nit_receptor = match_nit.group(1) if match_nit else None
         nombre_receptor = match_nombre.group(1) if match_nombre else None
-
-        # Mostrar resultados
-        # print(f"NIT Receptor: {nit_receptor}")
-        # print(f"Nombre Receptor: {nombre_receptor}")
     
     except Exception as e:
-        #EXTRAER DATOS FOLIO 3 DATOS DEL RECEPTOR
         elemento3 = driver.find_element(By.XPATH, "//div[@class='col-md-3'][2]/p")
-        #print("Elemento encontrado2: ",elemento3.text)
-        texto_elemento3 = elemento3.text  # Guardar el texto en una variable
+        texto_elemento3 = elemento3.text
 
-        # Expresiones regulares para extraer NIT y Nombre
         patron_nit = r"NIT:\s*([\d]+)"
         patron_nombre = r"Nombre:\s*(.+)"
 
-        # Buscar coincidencias en el texto
         match_nit = re.search(patron_nit, texto_elemento3)
         match_nombre = re.search(patron_nombre, texto_elemento3)
 
-        # Asignar valores a variables
         nit_receptor = match_nit.group(1) if match_nit else None
         nombre_receptor = match_nombre.group(1) if match_nombre else None
 
-        # Mostrar resultados
-        # print(f"NIT Receptor: {nit_receptor}")
-        # print(f"Nombre Receptor: {nombre_receptor}")
-        # try:
-        #     nit_receptor='Revisar Xpath'
-        #     nombre_receptor='Revisar Xpath'
-        # except Exception as e:
-        #     print()
+        
 
     if nit_receptor is None:
         print("La variable es None")
-        # Expresión regular para capturar el número después de "N°. Identificación:"
         match = re.search(r"N°\. Identificación:\s*(\d+)", texto_elemento3)
 
         if match:
             nit_receptor = match.group(1)
-            #print("Número de Identificación:", nit_receptor)
 
     if nit_receptor is None:
-        #print("La variable es None NIT RECEPTOR")
-        # Buscar el NIT con regex
         patron = r"NIT:\s*([A-Za-z0-9]+)"
         coincidencia = re.search(patron, texto_elemento3)
 
         if coincidencia:
-            nit_receptor = coincidencia.group(1)  # Extrae el valor del NIT
-            #print("NIT encontrado:", nit_receptor)
+            nit_receptor = coincidencia.group(1)
         else:
             print("NIT no encontrado")
 
@@ -686,74 +578,38 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     ################################ VALORES ########################################
 
     try:
-
-        #EXTRAER DATOS FOLIO 4 DATOS DE LOS VALORES
         elemento4 = driver.find_element(By.XPATH, "//div[@class='col-md-4'][3]")
-        #print("Elemento encontrado3: ",elemento4.text)
-        texto_elemento4 = elemento4.text  # Guardar el texto en una variable
+        texto_elemento4 = elemento4.text
 
-        # Expresión regular para extraer los valores
         patron_iva = r"IVA:\s*\$([\d,]+)"
         patron_total = r"Total:\s*\$([\d,]+)"
 
-        # Buscar los valores en el texto
         match_iva = re.search(patron_iva, texto_elemento4)
         match_total = re.search(patron_total, texto_elemento4)
 
-        # Asignar valores a variables, eliminando comas
         iva = match_iva.group(1).replace(",", "") if match_iva else None
         total = match_total.group(1).replace(",", "") if match_total else None
 
-        # Convertir a enteros si se encontraron los valores
         iva = int(iva) if iva else 0
         total = int(total) if total else 0
-
-        # Mostrar resultados
-        # print(f"IVA: {iva}")
-        # print(f"Total: {total}")
 
     except Exception as e:
-        #EXTRAER DATOS FOLIO 4 DATOS DE LOS VALORES
         elemento4 = driver.find_element(By.XPATH, "//div[@class='col-md-3'][4]/p[2]")
-        #print("Elemento encontrado3: ",elemento4.text)
-        texto_elemento4 = elemento4.text  # Guardar el texto en una variable
+        texto_elemento4 = elemento4.text
 
-        # Expresión regular para extraer los valores
         patron_iva = r"IVA:\s*\$([\d,]+)"
         patron_total = r"Total:\s*\$([\d,]+)"
 
-        # Buscar los valores en el texto
         match_iva = re.search(patron_iva, texto_elemento4)
         match_total = re.search(patron_total, texto_elemento4)
 
-        # Asignar valores a variables, eliminando comas
         iva = match_iva.group(1).replace(",", "") if match_iva else None
         total = match_total.group(1).replace(",", "") if match_total else None
 
-        # Convertir a enteros si se encontraron los valores
         iva = int(iva) if iva else 0
         total = int(total) if total else 0
 
-        # Mostrar resultados
-        # print(f"IVA: {iva}")
-        # print(f"Total: {total}")
-        # try:
-        #     iva=0
-        #     total=0
-        # except Exception as e:
-        #     print()
-
-    # # Mostrar resultados
-    # print("DATOS FINALES")
-    # print(f"Serie: {serie}")
-    # print(f"Folio: {folio}")
-    # print(f"Fecha de emisión: {fecha_emision}")
-    # print(f"NIT Emisor: {nit}")
-    # print(f"Nombre Emisor: {nombre}")
-    # print(f"NIT Receptor: {nit_receptor}")
-    # print(f"Nombre Receptor: {nombre_receptor}")
-    # print(f"IVA: {iva}")
-    # print(f"Total: {total}")
+        
     ###########################PDF BASE 64 ######################################
     print(f"[DEBUG] Buscando archivo PDF específico: {cufe}.pdf en {ruta_carpeta}")
     
@@ -915,21 +771,15 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     # LLAMADA DIRECTA AL ENDPOINT SIN ARCHIVO INTERMEDIO
     response = post_facturas(datos)
     print("RESPONSE: ", response)
-    # Si la llamada al endpoint falló y devolvió None, no seguir intentando indexar la respuesta
     if not response:
         print("No se obtuvo respuesta del endpoint /facturas. Ver logs para más detalles.")
-        # Obtener la fecha y hora actual en el formato deseado
         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-        # Crear el mensaje de log
         mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | No se obtuvo respuesta del endpoint /facturas. Datos RPA: {datos2} | Fin  Error CUFE: {cufe}!\n"
 
-        # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
         with open(logerrores, "a", encoding="utf-8") as archivo:
             archivo.write(mensajeerror)
-        # Indicar al llamador que la función falló para que se registre y continue con la siguiente fila
         return None
 
-    # Si recibimos un objeto/dict respuesta, procesarlo como antes
     try:
         status_code = response.get("status") if isinstance(response, dict) else None
     except Exception:
@@ -937,27 +787,18 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
     if status_code != 200:
         print("ERROR en endpoint /facturas, status:", status_code)
-        # Obtener la fecha y hora actual en el formato deseado
         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-        # Crear el mensaje de log
         mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Finalizo Registro Factura: {folio} | Fin  Error CUFE: {cufe} RespuestaEmpoint: {response} Datos RPA: {datos2}!\n"
-
-        # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
         with open(logerrores, "a", encoding="utf-8") as archivo:
             archivo.write(mensajeerror)
         return None
 
-    # Éxito
     print("OK")
-    # Obtener la fecha y hora actual en el formato deseado
     fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
-    # Crear el mensaje de log
     mensaje2 = f"FECHA: [{fecha_actual}] | INFO | DescargaRegistro | Finalizo Registro Factura: {folio} | Registro  con exito CUFE: {cufe}  RespuestaEmpoint: {response}!\n"
 
-    # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
     with open(logeventos, "a", encoding="utf-8") as archivo:
         archivo.write(mensaje2)
-
 
    
     ################################ELIMINAR ARCHIVOS PDF ########################################
@@ -976,7 +817,6 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     except Exception as e:
         print(f"[DEBUG] Error eliminando PDF específico: {e}")
     
-    # También limpiar otros PDFs que puedan haber quedado (backup cleanup)
     try:
         for archivo in os.listdir(ruta_carpeta):
             if archivo.endswith(".pdf"):
@@ -987,53 +827,18 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     except Exception as e:
         print(f"[DEBUG] Error en limpieza adicional de PDFs: {e}")
 
-    # =====================================================
     # PROCESAMIENTO COMPLETADO EXITOSAMENTE
     # Ya no eliminamos filas de Excel, el endpoint maneja el estado
-    # =====================================================
 
-    # Cierra el navegador al final, pase lo que pase
     driver.quit()
-    #print("Navegador cerrado")
-    # Cierra los navegadores más usados
     os.system("taskkill /F /IM chrome.exe")
     os.system("taskkill /F /IM msedge.exe")
     os.system("taskkill /F /IM firefox.exe")
     os.system("taskkill /F /IM brave.exe")
-    # Cierra todos los procesos de Google Chrome
     os.system("taskkill /f /im chrome.exe")
 
     print("Salida exitosa")
     # Indicar al llamador que la función terminó correctamente
     return True
 
-
-# =====================================================
-# MEJORA FUTURA: PROCESAMIENTO PARALELO SIN ARCHIVOS JSON
-# =====================================================
-# Para procesar múltiples facturas en paralelo, se puede crear una función:
-#
-# def procesar_factura_paralela(cufe_data, lote, callback=None):
-#     """
-#     Procesa una factura y envía datos directamente sin archivos intermedios
-#     
-#     Args:
-#         cufe_data: dict con {cufeCude, batch} del endpoint
-#         lote: string identificador del lote
-#         callback: función opcional para manejar la respuesta
-#     
-#     Returns:
-#         dict: datos de la factura procesada
-#     """
-#     # 1. Extraer datos de DIAN (misma lógica actual)
-#     # 2. Crear objeto datos en memoria
-#     # 3. Llamar post_facturas(datos) directamente
-#     # 4. Ejecutar callback si se proporciona
-#     # 5. Retornar resultado
-#
-# Beneficios:
-# - Procesamiento concurrente con threading/asyncio
-# - Sin conflictos de archivos JSON
-# - Mejor rendimiento y escalabilidad
-# - Múltiples facturas simultáneas
 
