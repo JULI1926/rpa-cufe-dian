@@ -349,33 +349,32 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         center_y = max_loc[1] + h // 2
         pyautogui.click(center_x, center_y)
         print("Click realizado con OpenCV.")
-        
+
         ########################################SEGUNDO CAPTCHA#####################################
         print("=== [DEBUG] INICIANDO SEGUNDO CAPTCHA ===")
-        
-        time.sleep(8)
+
+        time.sleep(3)  # Espera reducida para pruebas
         print("[DEBUG] Esperando carga de pagina para segundo captcha...")
 
-        time.sleep(8)
+        time.sleep(3)  # Espera reducida para pruebas
         print(f"[DEBUG] Intentando segundo captcha con imagenes:")
         print(f"  - Imagen 1: {rutaimagen}")
         print(f"  - Imagen 2: {rutaimagen2}")
-        
+
         if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
             print("=== [SUCCESS] SEGUNDO CAPTCHA COMPLETADO ===")
             print("Click realizado con OpenCV.")
 
             ########################### DESCARGAR PDF (segundo captcha) ###################################################
-            time.sleep(4)
-            
+            time.sleep(2)  # Espera reducida para pruebas
+
             try:
                 pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
                 if pos2 :
                     pyautogui.click(pos2)
                     print("Imagen encontrada y clickeada Descargar PDF (segundo captcha)")
                     print("[DEBUG] Esperando descarga del PDF después del segundo captcha...")
-                    time.sleep(5)
-                
+                    time.sleep(2)  # Espera reducida para pruebas
                 
             except Exception as e:
                 search_button = WebDriverWait(driver, 10).until(
