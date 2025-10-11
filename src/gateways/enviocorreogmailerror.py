@@ -3,13 +3,18 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 import sys
-from datetime import datetime
 import json
 
-
-def main(rutajson_param):
+def main(parametros_param):
     # Usar el parámetro pasado directamente
-    rutajson = rutajson_param
+    parametros = parametros_param
+
+    #SEPARAMOS LA CADENA
+    cadena=parametros.split('=')
+
+    # #SEPARAMOS LA CADENA POR POSICIONES
+    rutajson=cadena[0]
+    cuerpo=cadena[1]
 
     # Leer el archivo JSON
     with open(rutajson, 'r') as archivo:
@@ -21,16 +26,7 @@ def main(rutajson_param):
     # Asignar los valores a variables
     remitente_email = primer_objeto['correorpa']
     remitente_password = primer_objeto['contrasenarpa']
-    destinatario_email = primer_objeto['destinatario']
-
-    #FECHA ACTUAL DEL SISTEMA
-    fecha = datetime.now()
-    #PASAMOS DE TIPO DATE A STRING
-    fecha=str(fecha)
-    #SEPARAMOS LA FECHA 
-    separador=fecha.split(" ")
-    #OBTENEMOS LA POSICION DE LA FECHA
-    fechas=separador[0]
+    destinatario_email = primer_objeto['destinatarioerror']
 
     # Configuración del servidor SMTP de Gmail
     smtp_server = "smtp.gmail.com"
@@ -41,10 +37,10 @@ def main(rutajson_param):
     mensaje["From"] = remitente_email
     mensaje['To'] = ", ".join(destinatario_email)  # Unir los correos con comas
     #mensaje["To"] = destinatario_email
-    mensaje["Subject"] = "Proceso DIAN Inicio"
+    mensaje["Subject"] = "Proceso DIAN Error WARN"
 
     # Cuerpo del mensaje
-    cuerpo_mensaje = "Inicio Proceso Navegacion Pagina DIAN Fecha Ejecucion: "+ fecha
+    cuerpo_mensaje = cuerpo
     mensaje.attach(MIMEText(cuerpo_mensaje, "plain"))
 
     # Conectar al servidor SMTP y enviar el mensaje
@@ -62,7 +58,7 @@ def main(rutajson_param):
 if __name__ == "__main__":
     # Para compatibilidad con ejecución directa
     if len(sys.argv) > 1:
-        rutajson = os.path.abspath(sys.argv[1])
-        main(rutajson)
+        parametros = os.path.abspath(sys.argv[1])
+        main(parametros)
     else:
-        print("Error: No se proporcionó parámetro rutajson")
+        print("Error: No se proporcionó parámetro parametros")

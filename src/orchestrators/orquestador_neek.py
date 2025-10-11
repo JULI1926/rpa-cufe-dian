@@ -1,11 +1,11 @@
 import os
+import os
 import json
 from datetime import datetime
 from src.services.procesarpendientes import procesar_pendientes_endpoint
-from src.gateways.iniciocorreogmailelectronek import main as enviar_inicio
-from src.gateways.fincorreogmailelectronek import main as enviar_fin
-from src.gateways.enviocorreogmailerrorelectronek import main as enviar_error
-
+from src.gateways.iniciocorreo import main as enviar_inicio
+from src.gateways.fincorreo import main as enviar_fin
+from src.gateways.enviocorreogmailerror import main as enviar_error
 
 def enviar_correo_inicio(rutajson):
     # Llamada directa a la función de envío de correo de inicio
