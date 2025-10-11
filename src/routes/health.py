@@ -15,12 +15,6 @@ class ResponseBase(BaseModel):
     success: bool
     timestamp: datetime = Field(default_factory=datetime.now)
 
-@router.get("/", 
-         summary="Redirigir a documentación",
-         description="Ruta raíz que redirige a la documentación Swagger")
-async def root():
-    """Ruta raíz del API"""
-    return {"message": "RPA DIAN API", "docs": "/docs"}
 
 @router.get("/health", 
          response_model=ResponseBase,

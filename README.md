@@ -1,166 +1,71 @@
+
+
 # RPA DIAN API - FastAPI
 
-API REST para automatización RPA de validaciones DIAN con estructura FAZT API completamente en Python.
+Automatización RPA para validaciones DIAN usando FastAPI y Python.
 
-## 📋 Descripción
-
-Este proyecto migra el RPA DIAN existente a una estructura FAZT API organizada usando FastAPI, manteniendo toda la funcionalidad original sin modificaciones en la lógica de negocio.
-
-### Funcionalidades principales:
-
-- ✅ **Procesamiento DIAN**: Ejecuta el orquestador principal que procesa facturas DIAN
-- ✅ **Validación CUFE/CUDE**: Navega automáticamente por la página de DIAN usando Selenium
-- ✅ **Notificaciones**: Envía correos de inicio, fin y errores 
-- ✅ **Logs detallados**: Genera logs de eventos y errores
-- ✅ **Documentación automática**: Swagger UI integrado
-
-## 🏗️ Estructura del Proyecto
+## Estructura y Uso
 
 ```
 rpa-dian/
-├── main.py                    # Servidor FastAPI principal
-├── run.py                     # Script para ejecutar el servidor
-├── requirements.txt           # Dependencias Python
-├── README.md                 # Documentación
-├── src/                      # Código fuente
-│   ├── controllers/          # Controladores HTTP
-│   │   └── dian_controller.py
-│   ├── orchestrators/        # Lógica de orquestación
-│   │   └── orquestador_neek.py
-│   ├── services/            # Servicios de procesamiento
-│   │   ├── navegaciondian.py
-│   │   └── procesarpendientes.py
-│   ├── gateways/            # APIs externas y correos
-│   │   ├── gettoken.py
-│   │   ├── iniciocorreogmailelectronek.py
-│   │   ├── fincorreogmailelectronek.py
-│   │   └── enviocorreogmailerrorelectronek.py
-│   └── utils/               # Utilidades
-│       ├── 3intentos.py
-│       ├── abrirpagina.py
-│       ├── cerrarpagina.py
-│       └── ...
-├── config/                  # Configuración
+├── main.py                # Servidor FastAPI principal
+├── run.py                 # Script para ejecutar el servidor
+├── requirements.txt       # Dependencias Python
+├── .env                   # Variables de entorno (API DIAN)
+├── src/                   # Código fuente
+│   ├── controllers/       # Controladores HTTP
+│   ├── orchestrators/     # Orquestador principal
+│   ├── services/          # Procesamiento y navegación
+│   ├── gateways/          # APIs externas y correos
+│   └── utils/             # Utilidades
+├── config/                # Configuración y recursos
 │   ├── VariablesGlobales.json
-│   ├── datos_factura.json
-│   ├── *.png (imágenes)
-│   └── *.xlsx (archivos Excel)
-├── docs/                   # Documentación
-└── tests/                  # Tests (futuro)
+│   └── *.png (imágenes)
+└── docs/                  # Documentación adicional
 ```
 
-## 🚀 Instalación y Uso
-
-### 1. Instalar dependencias
+## Instalación rápida
 
 ```bash
 cd rpa-dian
 pip install -r requirements.txt
 ```
 
-### 2. Configurar variables
+Configura `config/VariablesGlobales.json` y el archivo `.env` con tus credenciales:
 
-Editar `config/VariablesGlobales.json` con las rutas y credenciales correctas.
-
-### 3. Ejecutar servidor
-
-```bash
-# Opción 1: Usar el script run.py
-python run.py
-
-# Opción 2: Ejecutar directamente con uvicorn  
-python main.py
-
-# Opción 3: Usar uvicorn comando
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+WEBSERVICE_URL=https://tu-api-dian.com
+WEBSERVICE_USER=usuario
+WEBSERVICE_PASSWORD=contraseña
 ```
 
-### 4. Acceder a la API
+## Ejecución
 
-- **Documentación Swagger**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+Puedes ejecutar el orquestador desde la API o manualmente:
 
-## 📡 Endpoints de la API
+**API REST:**
+- Levanta el servidor: `python run.py` o `uvicorn main:app --reload`
+- Accede a la documentación interactiva: http://localhost:8000/docs
+- Endpoint principal: `POST /api/v1/dian/procesar`
 
-### `POST /api/v1/dian/procesar`
-
-Ejecuta el orquestador DIAN completo:
-
-```json
-{
-  "path_json": "C:/ruta/personalizada/VariablesGlobales.json"  // Opcional
-}
+**Manual (PowerShell):**
+```powershell
+python .\src\orchestrators\orquestador_neek.py "C:/ruta/a/VariablesGlobales.json"
 ```
 
-**Respuesta exitosa:**
-```json
-{
-  "success": true,
-  "message": "Procesamiento DIAN completado exitosamente",
-  "exit_code": 0,
-  "output": "...",
-  "timestamp": "2024-10-08T10:30:00"
-}
-```
+## Flujo simplificado
 
-### `GET /health`
+1. El orquestador inicia y envía correo de inicio.
+2. Consulta facturas pendientes desde el endpoint.
+3. Procesa cada factura navegando la página DIAN y resolviendo CAPTCHAs.
+4. Envía resultados al endpoint y notificaciones por correo.
+5. Genera logs en `C:/Users/{usuario}/Documents/Archivos DIAN/`.
 
-Health check del servicio:
+## Notas técnicas
 
-```json
-{
-  "success": true,
-  "timestamp": "2024-10-08T10:30:00"
-}
-```
+- Requiere Python 3.8+, Google Chrome y permisos de escritura en carpetas de logs.
+- La contraseña de correo en `VariablesGlobales.json` debería moverse a `.env` por seguridad.
+- La documentación Swagger se actualiza automáticamente.
 
-## 🔧 Configuración
-
-El archivo `config/VariablesGlobales.json` contiene toda la configuración:
-
-- **Rutas de archivos**: Excel, imágenes, PDFs, logs
-- **Credenciales de correo**: Para notificaciones automáticas
-- **URL DIAN**: Página de validación de facturas
-- **Datos del cliente**: NIT y nombre
-
-## 🐍 Migración Realizada
-
-El proyecto original en `DIAN/` fue migrado manteniendo:
-
-- ✅ **Funcionalidad intacta**: Toda la lógica RPA funciona igual
-- ✅ **Estructura organizada**: Separación clara de responsabilidades  
-- ✅ **API REST**: Endpoints HTTP para invocar el RPA
-- ✅ **Documentación**: Swagger automático
-- ✅ **Logs preservados**: Misma generación de logs
-- ✅ **Configuración**: Mismo archivo JSON de configuración
-
-## 🔍 Monitoreo
-
-Los logs se generan en:
-- `C:\Users\julia\Documents\Archivos Excel DIAN\LogEventos-{documento}{lote}.txt`
-- `C:\Users\julia\Documents\Archivos Excel DIAN\LogErrores-{documento}{lote}.txt`
-
-## 📧 Notificaciones
-
-El sistema envía correos automáticamente:
-- **Inicio**: Al comenzar el procesamiento
-- **Fin**: Al completar exitosamente  
-- **Error**: Si ocurre algún fallo
-
-## 🛠️ Desarrollo
-
-Para agregar nuevas funcionalidades:
-
-1. **Controladores**: Agregar en `src/controllers/`
-2. **Servicios**: Lógica de negocio en `src/services/`
-3. **Gateways**: APIs externas en `src/gateways/`
-4. **Utilidades**: Helpers en `src/utils/`
-
-La documentación Swagger se actualiza automáticamente con los docstrings y anotaciones de tipo.
-
-## 🚨 Consideraciones
-
-- **Python**: Requiere Python 3.8+
-- **Chrome**: Selenium necesita Google Chrome instalado
-- **Permisos**: Requiere permisos de escritura en las carpetas de logs
-- **Red**: Acceso a Internet para la página de DIAN y envío de correos
+---
+Para detalles técnicos y ejecución manual, consulta el orquestador en `src/orchestrators/orquestador_neek.py`.
