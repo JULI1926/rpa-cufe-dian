@@ -18,6 +18,12 @@ import numpy as np
 import getpass
 from datetime import datetime
 
+
+# Variables globales que se inicializarán cuando sea necesario
+usuario = None
+fecha_actual = None
+ruta_descargas_real = None
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
@@ -29,16 +35,12 @@ def init_config():
     usuario = getpass.getuser()
     fecha_actual = datetime.now().strftime('%Y%m%d')
 
-    # Usar la ruta temporal I:\ donde realmente se descargan los PDFs
     ruta_descargas_real = "I:\\"
-    print("Ruta de Descargas configurada:", ruta_descargas_real)
-
     if not os.path.isdir(ruta_descargas_real):
         try:
             os.makedirs(ruta_descargas_real, exist_ok=True)
-            print(f'Creada carpeta de descargas: {ruta_descargas_real}')
-        except Exception as e:
-            print(f'Advertencia: No se pudo crear la carpeta {ruta_descargas_real}: {e}')
+        except Exception:
+            pass
     
     return ruta_descargas_real
 
@@ -50,7 +52,6 @@ def load_config():
 
     primer_objeto = datos[0]
     
-    # Inicializar configuración si no está inicializada
     if ruta_descargas_real is None:
         init_config()
 
@@ -143,27 +144,23 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     if client_name and client_document:
         nombre_cliente_actual = client_name
         documento_cliente_actual = client_document
-        print(f"[INFO] Usando datos del cliente desde endpoint: {nombre_cliente_actual} ({documento_cliente_actual})")
     else:
         nombre_cliente_actual = primer_objeto.get('nombrecliente', 'Cliente por defecto')
         documento_cliente_actual = primer_objeto.get('documentocliente', '000000000')
-        print(f"[INFO] Usando datos del cliente desde configuracion: {nombre_cliente_actual} ({documento_cliente_actual})")
 
     # Limpiar PDFs previos en la carpeta I:\
-    print(f"[DEBUG] Limpiando PDFs previos en {ruta_carpeta}")
     try:
         for archivo in os.listdir(ruta_carpeta):
             if archivo.endswith(".pdf"):
                 ruta_archivo = os.path.join(ruta_carpeta, archivo)
                 os.remove(ruta_archivo)
-                print(f"[DEBUG] Eliminado PDF previo: {archivo}")
-    except Exception as e:
-        print(f"[DEBUG] Error limpiando PDFs previos: {e}")   
+    except Exception:
+        pass
     
     
     
     # Configuración específica para descarga de PDFs
-    print(f"[DEBUG] Configurando descarga de PDFs en: {ruta_carpeta}")
+    # Configuración de descarga de PDFs
 
     download_prefs = {
         "download.default_directory": ruta_carpeta,
@@ -184,7 +181,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     driver.execute_script("window.open('https://catalogo-vpfe.dian.gov.co/User/SearchDocument', '_blank')")
     time.sleep(5)
     driver.switch_to.window(driver.window_handles[1])
-    print("buscando pagina")
+    # ...existing code...
     cufe = cufeexcel
     
     for i in range(3):
@@ -425,7 +422,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     reclamo=False
     recibo=False
     aceptacion=False
-    
+
     while contador < 4:
         print("Suma:",suma)
         xpath = f"(//td[@class='text-center'])[{suma}]"

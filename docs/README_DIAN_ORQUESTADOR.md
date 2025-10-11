@@ -6,7 +6,7 @@ El archivo `orquestador_neek.py` integra los pasos principales del flujo Neek y 
 
 - `iniciocorreogmailelectronek.py` -> envía correo de inicio (invocado como subproceso)
 - `filtrarexcel.py` -> filtra el Excel original (el script ya modifica `rutaradian`)
-- `recorrerexcel.py` -> recorre el Excel copia y llama a `navegaciondian.procesarfactura` por cada fila
+- `procesarpendientes.py` -> procesa facturas pendientes obtenidas desde el endpoint y llama a `navegaciondian.procesarfactura` por cada registro
 - `fincorreogmailelectronek.py` -> envía correo de fin (invocado como subproceso)
 - `enviocorreogmailerrorelectronek.py` -> envía correo de error (invocado con "ruta=cuerpo")
 
@@ -23,6 +23,6 @@ python .\orquestador_neek.py "C:/ruta/a/VariablesGlobales.json"
 ```
 
 Notas:
-- El orquestador invoca `recorrerexcel.py` que a su vez llama a `navegaciondian.procesarfactura`.
+- El orquestador invoca `procesarpendientes.py` que a su vez llama a `navegaciondian.procesarfactura`.
 - Los envíos de correo y logs están implementados en los scripts existentes y se llaman como subprocesos; revisar sus salidas si hay fallos.
 - Si desea ejecutar todo desde Neek, configure los bloques de Neek para ejecutar `python orquestador_neek.py`.

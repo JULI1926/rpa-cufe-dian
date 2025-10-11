@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from src.services.recorrerexcel import procesar_facturas_pendientes
+from src.services.procesarpendientes import procesar_pendientes_endpoint
 from src.gateways.iniciocorreogmailelectronek import main as enviar_inicio
 from src.gateways.fincorreogmailelectronek import main as enviar_fin
 from src.gateways.enviocorreogmailerrorelectronek import main as enviar_error
@@ -57,12 +57,11 @@ def main(path_json=None):
 
     # Llamar directamente al procesador de facturas
     try:
-        resultado = procesar_facturas_pendientes(lote)
+        resultado = procesar_pendientes_endpoint(lote)
         if resultado != 0:
-            raise Exception(f"Error en procesar_facturas_pendientes: código {resultado}")
+            raise Exception(f"Error en procesar_pendientes_endpoint: código {resultado}")
     except Exception as e:
-        # Si falló algo en el procesamiento, enviar correo de error con el mensaje
-        cuerpo = f'Error al ejecutar recorrerexcel: {str(e)}'
+        cuerpo = f'Error al ejecutar procesarpendientes: {str(e)}'
         print(cuerpo)
         enviar_correo_error(config_path, cuerpo)
         return 1
