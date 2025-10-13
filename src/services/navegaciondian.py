@@ -386,10 +386,10 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         ########################################SEGUNDO CAPTCHA#####################################
         print("=== [DEBUG] INICIANDO SEGUNDO CAPTCHA ===")
 
-        time.sleep(1)  # Espera mínima para pruebas
+        time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
         print("[DEBUG] Esperando carga de pagina para segundo captcha...")
 
-        time.sleep(1)  # Espera mínima para pruebas
+        time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
         print(f"[DEBUG] Intentando segundo captcha con imagenes:")
         print(f"  - Imagen 1: {rutaimagen}")
         print(f"  - Imagen 2: {rutaimagen2}")
@@ -399,7 +399,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             print("Click realizado con OpenCV.")
 
             ########################### DESCARGAR PDF (segundo captcha) ###################################################
-            time.sleep(1)  # Espera mínima para pruebas
+            time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
 
             try:
                 pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
@@ -407,7 +407,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
                     pyautogui.click(pos2)
                     print("Imagen encontrada y clickeada Descargar PDF (segundo captcha)")
                     print("[DEBUG] Esperando descarga del PDF después del segundo captcha...")
-                    time.sleep(1)  # Espera mínima para pruebas
+                    time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
             except Exception as e:
                 search_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "(//a[@class='downloadPDFUrl'])[1]"))
