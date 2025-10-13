@@ -206,7 +206,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
     ########################################BUSCAR IMAGEN CAPTCHA#####################################
     # Esperar a que cargue la página
-    time.sleep(3)
+    time.sleep(3)  # Restaurado de 2 a 3 segundos para estabilidad del navegador
 
     # Loop de reintentos para captcha con refresh de página
     max_retries = 5
@@ -228,17 +228,21 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
                 
                 # Refrescar la página
                 driver.refresh()
-                time.sleep(3)
+                time.sleep(2)  # Optimizado de 2.5 a 2 segundos
                 
                 # Reingresar el CUFE
                 try:
                     input_field = driver.find_element(By.XPATH, '//*[@id="DocumentKey"]')
                     input_field.clear()  # Limpiar campo antes de ingresar
                     input_field.send_keys(cufe)
-                    time.sleep(2)
+                    time.sleep(1)  # Optimizado de 1.5 a 1 segundo
                 except Exception as e:
                     print(f"[ERROR] Error reingresando CUFE en intento {attempt + 1}: {e}")
                     continue
+                
+                # Esperar adicionalmente a que aparezca el nuevo captcha
+                print("[DEBUG] Esperando carga del nuevo captcha...")
+                time.sleep(1.5)  # Optimizado de 2 a 1.5 segundos
             else:
                 print("[ERROR] Máximo de reintentos alcanzado para captcha")
     
@@ -259,7 +263,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     
     ###########################BOTON BUSCAR CUFE DIAN###################################################
     #Esperar a que cargue la página
-    time.sleep(3)
+    time.sleep(2.5)  # Restaurado de 2 a 2.5 segundos para estabilidad
     try:
         search_button = driver.find_element(By.XPATH, '//*[@id="search-document-form"]/button')
         search_button.click()
@@ -273,7 +277,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         return None
 
     ###########################EXTRAER INPUT###################################################
-    time.sleep(4)
+    time.sleep(3.5)  # Restaurado de 3 a 3.5 segundos para estabilidad
     try:
         elemento = driver.find_element(By.XPATH, '//*[@id="search-document-form"]/div[2]/span')
         texto = elemento.text
@@ -291,11 +295,11 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
     ########################################BUSCAR IMAGEN CATCHAT#####################################
     # Esperar a que cargue la página
-    time.sleep(6)
+    time.sleep(5)  # Restaurado de 4 a 5 segundos para estabilidad del navegador
 
     if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
         print("Click realizado con OpenCV.")
-        time.sleep(5)
+        time.sleep(3)  # Optimizado de 4 a 3 segundos
     else:
         print("No se encontró la imagen con OpenCV.")
         driver.quit()
@@ -308,7 +312,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
    
     ########################### DESCARGAR PDF ###################################################
-    time.sleep(2)
+    time.sleep(1)  # Optimizado de 1.5 a 1 segundo
     
     try:
         #CLIC EN IMAGEN DESCARGAR PDF
@@ -355,7 +359,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     ########################################BUSCAR IMAGEN ERROR#####################################
     print("=== [DEBUG] INICIANDO BUSQUEDA DE IMAGEN ERROR ===")
     
-    time.sleep(3)
+    time.sleep(2.5)  # Restaurado de 2 a 2.5 segundos para estabilidad
 
     if not os.path.exists(rutaimagenerror):
         print(f"[ERROR] No existe la imagen de error: {rutaimagenerror}")
@@ -443,7 +447,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         print(f"[DEBUG] Coincidencia: {max_val:.3f} < {threshold}")
         
 
-    time.sleep(2)
+    time.sleep(1)  # Optimizado de 1.5 a 1 segundo
 
     ################################EXTRAER EVENTOS DE ACUSE ########################################
 
