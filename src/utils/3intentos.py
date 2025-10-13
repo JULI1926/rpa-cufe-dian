@@ -311,40 +311,85 @@ class DianProcessor:
             return False
     
     def _completar_formulario(self, cufe):
-        """Completar el formulario con el CUFE y resolver CAPTCHA"""
-        try:
-            print("Completando formulario...")
+        """Completar el formulario con el CUFE y resolver CAPTCHA con reintentos"""
+        max_retries = 5
+        
+        for attempt in range(max_retries):
+            print(f"[INFO] Intento {attempt + 1}/{max_retries} para procesar CUFE: {cufe[:20]}...")
             
-            # Ingresar CUFE
-            input_field = self.driver.find_element(By.XPATH, XPATH_DOCUMENT_KEY)
-            input_field.send_keys(cufe)
-            print(f"CUFE ingresado: {cufe}")
-            
-            # Resolver CAPTCHA
-            captcha_resuelto = CaptchaResolver.detect_and_click_captcha(
-                self.driver, 
-                self.config.rutaimagen,
-                retries=3,
-                pause=2,
-                use_opencv_fallback=True,
-                allow_manual=True
-            )
-            
-            if not captcha_resuelto:
-                print("CAPTCHA no pudo ser resuelto")
-                return False
-            
-            # Hacer clic en buscar
-            time.sleep(2)
-            search_button = self.driver.find_element(By.XPATH, XPATH_SEARCH_BUTTON)
-            search_button.click()
-            print("Búsqueda iniciada")
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error completando formulario: {e}")
-            return False
+            try:
+                # Limpiar campo antes de ingresar CUFE
+                input_field = self.driver.find_element(By.XPATH, XPATH_DOCUMENT_KEY)
+                input_field.clear()
+                input_field.send_keys(cufe)
+                print(f"CUFE ingresado: {cufe}")
+                
+                # Resolver CAPTCHA
+                captcha_resuelto = CaptchaResolver.detect_and_click_captcha(
+                    self.driver, 
+                    self.config.rutaimagen,
+                    retries=3,
+                    pause=2,
+                    use_opencv_fallback=True,
+                    allow_manual=False  # No permitir manual en reintentos automáticos
+                )
+                
+                if captcha_resuelto:
+                    print(f"[SUCCESS] CAPTCHA resuelto en intento {attempt + 1}")
+                    
+                    # Hacer clic en buscar
+                    time.sleep(2)
+                    search_button = self.driver.find_element(By.XPATH, XPATH_SEARCH_BUTTON)
+                    search_button.click()
+                    print("Búsqueda iniciada")
+                    
+                    # Verificar si el documento existe
+                    time.sleep(4)
+                    try:
+                        error_element = self.driver.find_element(By.XPATH, '//*[@id="search-document-form"]/div[2]/span')
+                        error_text = error_element.text
+                        if "Documento no encontrado" in error_text:
+                            print("[INFO] CUFE no encontrado en registros de DIAN")
+                            LogManager.escribir_log_evento(
+                                self.config.logerrores, 
+                                f"CUFE no encontrado: {cufe}"
+                            )
+                            return False
+                    except Exception:
+                        # No se encontró mensaje de error, continuar
+                        pass
+                    
+                    return True
+                else:
+                    print(f"[WARNING] CAPTCHA no resuelto en intento {attempt + 1}")
+                    if attempt < max_retries - 1:
+                        # Refrescar página para reintentar
+                        print("[INFO] Refrescando página para reintentar...")
+                        self.driver.get(DIAN_URL)
+                        time.sleep(3)
+                        continue
+                    else:
+                        print("[ERROR] Máximo número de reintentos alcanzado para CAPTCHA")
+                        
+            except Exception as e:
+                print(f"[ERROR] Error en intento {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    try:
+                        # Intentar refrescar la página
+                        self.driver.get(DIAN_URL)
+                        time.sleep(3)
+                    except Exception as refresh_error:
+                        print(f"[ERROR] Error refrescando página: {refresh_error}")
+                    continue
+                else:
+                    print("[ERROR] Máximo número de reintentos alcanzado")
+        
+        # Si llegamos aquí, todos los reintentos fallaron
+        LogManager.escribir_log_evento(
+            self.config.logerrores, 
+            f"CAPTCHA no pudo ser resuelto después de {max_retries} intentos: {cufe}"
+        )
+        return False
     
     def _descargar_documento(self):
         """Intentar descargar el documento con reintentos"""

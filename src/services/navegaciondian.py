@@ -208,15 +208,48 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     # Esperar a que cargue la página
     time.sleep(3)
 
-    # Intentar encontrar y clickear usando una sola captura para rutaimagen y opcional rutaimagen2
-    if not _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
-        print("No se encontró la imagen con OpenCV.")
+    # Loop de reintentos para captcha con refresh de página
+    max_retries = 5
+    captcha_resuelto = False
+    
+    for attempt in range(max_retries):
+        print(f"[DEBUG] Intento {attempt + 1}/{max_retries} para resolver captcha")
+        
+        # Intentar encontrar y clickear usando una sola captura para rutaimagen y opcional rutaimagen2
+        if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
+            print(f"[DEBUG] Captcha resuelto exitosamente en intento {attempt + 1}")
+            captcha_resuelto = True
+            break
+        else:
+            print(f"[DEBUG] Captcha falló en intento {attempt + 1}")
+            
+            if attempt < max_retries - 1:  # No es el último intento
+                print("[DEBUG] Refrescando página y reingresando CUFE...")
+                
+                # Refrescar la página
+                driver.refresh()
+                time.sleep(3)
+                
+                # Reingresar el CUFE
+                try:
+                    input_field = driver.find_element(By.XPATH, '//*[@id="DocumentKey"]')
+                    input_field.clear()  # Limpiar campo antes de ingresar
+                    input_field.send_keys(cufe)
+                    time.sleep(2)
+                except Exception as e:
+                    print(f"[ERROR] Error reingresando CUFE en intento {attempt + 1}: {e}")
+                    continue
+            else:
+                print("[ERROR] Máximo de reintentos alcanzado para captcha")
+    
+    if not captcha_resuelto:
+        print("No se pudo resolver el captcha después de todos los reintentos.")
         # Cierra el navegador al final, pase lo que pase
         driver.quit()
         # Obtener la fecha y hora actual en el formato deseado
         fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
         # Crear el mensaje de log
-        mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Imagen No encontrada Catchat Try: | Fin  Error CUFE: {cufe} !\n"
+        mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Captcha No resuelto después de {max_retries} intentos | Fin Error CUFE: {cufe} !\n"
 
         # Guardar el mensaje en el archivo (modo 'a' para añadir sin borrar)
         with open(logerrores, "a", encoding="utf-8") as archivo:
@@ -353,10 +386,10 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         ########################################SEGUNDO CAPTCHA#####################################
         print("=== [DEBUG] INICIANDO SEGUNDO CAPTCHA ===")
 
-        time.sleep(3)  # Espera reducida para pruebas
+        time.sleep(1)  # Espera mínima para pruebas
         print("[DEBUG] Esperando carga de pagina para segundo captcha...")
 
-        time.sleep(3)  # Espera reducida para pruebas
+        time.sleep(1)  # Espera mínima para pruebas
         print(f"[DEBUG] Intentando segundo captcha con imagenes:")
         print(f"  - Imagen 1: {rutaimagen}")
         print(f"  - Imagen 2: {rutaimagen2}")
@@ -366,7 +399,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             print("Click realizado con OpenCV.")
 
             ########################### DESCARGAR PDF (segundo captcha) ###################################################
-            time.sleep(2)  # Espera reducida para pruebas
+            time.sleep(1)  # Espera mínima para pruebas
 
             try:
                 pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
@@ -374,8 +407,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
                     pyautogui.click(pos2)
                     print("Imagen encontrada y clickeada Descargar PDF (segundo captcha)")
                     print("[DEBUG] Esperando descarga del PDF después del segundo captcha...")
-                    time.sleep(2)  # Espera reducida para pruebas
-                
+                    time.sleep(1)  # Espera mínima para pruebas
             except Exception as e:
                 search_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "(//a[@class='downloadPDFUrl'])[1]"))
