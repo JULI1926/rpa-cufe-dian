@@ -2,7 +2,7 @@
 
 # RPA DIAN API - FastAPI
 
-Automatización RPA para validaciones DIAN usando FastAPI y Python.
+Automatización RPA para validaciones DIAN usando FastAPI y Python. Procesa facturas desde base de datos remota.
 
 ## Estructura y Uso
 
@@ -56,7 +56,7 @@ python .\src\orchestrators\orquestador_neek.py "C:/ruta/a/VariablesGlobales.json
 ## Flujo simplificado
 
 1. El orquestador inicia y envía correo de inicio.
-2. Consulta facturas pendientes desde el endpoint.
+2. Consulta facturas pendientes desde base de datos remota.
 3. Procesa cada factura navegando la página DIAN y resolviendo CAPTCHAs.
 4. Envía resultados al endpoint y notificaciones por correo.
 5. Genera logs en `C:/Users/{usuario}/Documents/Archivos DIAN/`.

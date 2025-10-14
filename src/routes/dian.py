@@ -52,7 +52,7 @@ dian_controller = DianController()
           description="""
           Ejecuta el orquestador principal del RPA DIAN que:
           
-          - Lee el archivo Excel con las facturas DIAN
+          - Consulta facturas pendientes desde base de datos remota Azure
           - Navega por cada factura usando Selenium
           - Valida CUFE/CUDE en la página de DIAN
           - Envía correos de notificación de inicio y fin

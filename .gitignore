@@ -22,7 +22,7 @@ Thumbs.db
 test-results/
 *.bak
 
-# Ignorar archivos de Excel temporales
+# Ignorar archivos Excel (aunque el sistema ya no los usa directamente)
 *.xlsx
 *.xls
 

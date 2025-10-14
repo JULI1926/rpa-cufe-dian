@@ -860,7 +860,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         print(f"[DEBUG] Error en limpieza adicional de PDFs: {e}")
 
     # PROCESAMIENTO COMPLETADO EXITOSAMENTE
-    # Ya no eliminamos filas de Excel, el endpoint maneja el estado
+    # El endpoint de base de datos remota maneja el estado de las facturas procesadas
 
     driver.quit()
     os.system("taskkill /F /IM chrome.exe")
