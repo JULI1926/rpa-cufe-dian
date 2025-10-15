@@ -222,6 +222,38 @@ class ApiDianGateway:
             print(f"Error de conexión en GET /facturas/faltantes: {e}")
             return None
 
+    def get_factura_faltante_siguiente(self):
+        """
+        Realiza una solicitud GET al endpoint /facturas/faltantes/siguiente con JWT Bearer token.
+        
+        Returns:
+            dict: Respuesta del servidor con la siguiente factura faltante o None en caso de error
+        """
+        if not self.base_url:
+            print('ERROR: WEBSERVICE_URL no definido en variables de entorno (.env)')
+            return None
+
+        url = f"{self.base_url}/facturas/faltantes/siguiente"
+
+        try:
+            headers = self._get_headers()
+        except Exception as e:
+            print(f"Error obteniendo token: {e}")
+            return None
+
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Error al realizar GET /facturas/faltantes/siguiente. Código de estado: {response.status_code}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            print(f"Error de conexión en GET /facturas/faltantes/siguiente: {e}")
+            return None
+
 
 # Instancia global para compatibilidad con código existente
 api_gateway = ApiDianGateway()
@@ -238,3 +270,7 @@ def get_facturas_reporte(lote, tipo_respuesta):
 def get_facturas_faltantes():
     """Wrapper para obtener facturas faltantes"""
     return api_gateway.get_facturas_faltantes()
+
+def get_factura_faltante_siguiente():
+    """Wrapper para obtener la siguiente factura faltante"""
+    return api_gateway.get_factura_faltante_siguiente()

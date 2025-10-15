@@ -197,7 +197,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     print(f"[TIMING] Browser opened in {time.time() - browser_start_time:.2f}s")
 
     driver.execute_script("window.open('https://catalogo-vpfe.dian.gov.co/User/SearchDocument', '_blank')")
-    time.sleep(2.5)  # Optimizado a 2.5 segundos
+    time.sleep(5)
     driver.switch_to.window(driver.window_handles[1])
     print(f"[TIMING] Page loaded and switched in {time.time() - browser_start_time:.2f}s")
     # ...existing code...
