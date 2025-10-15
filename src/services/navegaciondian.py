@@ -116,6 +116,9 @@ def _search_and_click_templates(ruta1, ruta2=None, threshold=0.8, region=None):
 
 
 def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, client_document=None):
+    # Medir tiempo total de procesamiento
+    total_start_time = time.time()
+    
     # Cargar configuración al inicio
     config = load_config()
     ruta_carpeta = config['ruta_carpeta']
@@ -189,11 +192,14 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             driver_path = exe_files[0]
     
     service = Service(driver_path)
+    browser_start_time = time.time()
     driver = webdriver.Chrome(service=service, options=options)
+    print(f"[TIMING] Browser opened in {time.time() - browser_start_time:.2f}s")
 
     driver.execute_script("window.open('https://catalogo-vpfe.dian.gov.co/User/SearchDocument', '_blank')")
-    time.sleep(5)
+    time.sleep(2.5)  # Optimizado a 2.5 segundos
     driver.switch_to.window(driver.window_handles[1])
+    print(f"[TIMING] Page loaded and switched in {time.time() - browser_start_time:.2f}s")
     # ...existing code...
     cufe = cufeexcel
     
@@ -201,6 +207,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         try:
             input_field = driver.find_element(By.XPATH, '//*[@id="DocumentKey"]')
             input_field.send_keys(cufe)
+            print(f"[TIMING] CUFE entered in {time.time() - browser_start_time:.2f}s")
             break
         except Exception as e:
             print("ERROR NAVEGACION")
@@ -219,7 +226,8 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
 
     ########################################BUSCAR IMAGEN CAPTCHA#####################################
     # Esperar a que cargue la página
-    time.sleep(3)  # Restaurado de 2 a 3 segundos para estabilidad del navegador
+    time.sleep(5)  # Aumentado de 3 a 5 segundos para asegurar carga completa del CAPTCHA
+    captcha_start_time = time.time()
 
     # Loop de reintentos para captcha con refresh de página
     max_retries = 5
@@ -232,6 +240,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         if _search_and_click_templates(rutaimagen, rutaimagen2, threshold=0.8):
             print(f"[DEBUG] Captcha resuelto exitosamente en intento {attempt + 1}")
             captcha_resuelto = True
+            print(f"[TIMING] CAPTCHA resolved in {time.time() - captcha_start_time:.2f}s")
             break
         else:
             print(f"[DEBUG] Captcha falló en intento {attempt + 1}")
@@ -883,6 +892,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
     os.system("taskkill /f /im chrome.exe")
 
     print("Salida exitosa")
+    print(f"[TIMING] Total processing time: {time.time() - total_start_time:.2f}s")
     # Indicar al llamador que la función terminó correctamente
     return True
 
