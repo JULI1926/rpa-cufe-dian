@@ -1,0 +1,23 @@
+# FastAPI y servidor
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Utilidades web
+pydantic==2.5.0
+starlette==0.27.0
+python-dotenv==1.0.0
+
+# HTTP Requests
+requests==2.31.0
+
+# Dependencias existentes del proyecto RPA
+pandas==2.1.3
+selenium==4.15.2
+webdriver-manager==4.0.1
+pyautogui==0.9.54
+opencv-python>=4.10.0
+numpy<2.0.0
+Pillow==10.1.0
+
+# Opcional para desarrollo
+python-multipart==0.0.6

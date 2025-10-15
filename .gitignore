@@ -1,0 +1,34 @@
+# Ignorar carpetas y archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar archivos de entorno
+.env
+
+# Ignorar archivos de configuración y logs temporales
+*.log
+*.sqlite3
+*.db
+
+# Ignorar archivos de sistema y editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Ignorar archivos de pruebas y resultados temporales
+test-results/
+*.bak
+
+# Ignorar archivos Excel (aunque el sistema ya no los usa directamente)
+*.xlsx
+*.xls
+
+# Ignorar archivos de configuración personal
+config/*.json
+
+# Ignorar carpetas de caché en cualquier subdirectorio
+src/**/__pycache__/
+config/**/__pycache__/

@@ -1,0 +1,107 @@
+import sys
+import os
+import json
+from datetime import datetime
+import getpass
+
+# Agregar el directorio padre al path para importar navegaciondian
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+sys.path.append(os.path.dirname(current_dir))
+
+from navegaciondian import procesarfactura 
+from gateways.ApiDianGateway import get_facturas_faltantes
+
+def procesar_pendientes_endpoint(lote):
+    """
+    Procesa facturas pendientes obtenidas desde el endpoint (no desde Excel)
+    Args:
+        lote (str): Identificador del lote de procesamiento
+    Returns:
+        int: 0 si fue exitoso, 1 si hubo errores
+    """
+    usuario = getpass.getuser()
+    print(f"[INFO] Iniciando procesamiento de facturas - Lote: {lote}")
+    print(f"[INFO] Usuario del equipo: {usuario}")
+
+    # Configurar rutas de logs
+    base_logs = f"C:/Users/{usuario}/Documents/Archivos DIAN/"
+    os.makedirs(base_logs, exist_ok=True)
+    logeventos = os.path.join(base_logs, f"LogEventos-{lote}.txt")
+    logerrores = os.path.join(base_logs, f"LogErrores-{lote}.txt")
+
+    print("[INFO] Consultando facturas pendientes desde el endpoint...")
+
+    try:
+        facturas_response = get_facturas_faltantes()
+        
+        if not facturas_response:
+            print("[ERROR] No se pudo obtener respuesta del endpoint")
+            return 1
+        
+        # Verificar estructura de respuesta
+        if facturas_response.get('status') != 200:
+            print(f"[ERROR] Respuesta del endpoint con status {facturas_response.get('status')}")
+            print(f"Mensaje: {facturas_response.get('message', 'Sin mensaje')}")
+            return 1
+        
+        # Extraer los registros
+        response_data = facturas_response.get('response', {})
+        records = response_data.get('records', [])
+        total_missing = response_data.get('totalMissing', 0)
+        
+        print(f"[SUCCESS] Facturas faltantes obtenidas: {total_missing} registros")
+        print(f"[INFO] Registros a procesar: {len(records)}")
+        
+        if len(records) == 0:
+            print("[SUCCESS] No hay facturas faltantes para procesar")
+            return 0
+            
+    except Exception as e:
+        print(f"[ERROR] al consultar endpoint: {e}")
+        return 1
+
+    print("[INFO] Iniciando procesamiento de facturas faltantes...")
+
+    # Procesar cada registro recibido desde el endpoint
+    for index, registro in enumerate(records):
+        cufe = registro.get('cufeCude', '')
+        batch = registro.get('batch', '')
+        client_name = registro.get('clientName', '')
+        client_document = registro.get('clientDocument', '')
+
+        if not cufe:
+            print(f"[WARNING] Registro {index + 1}: CUFE vacío, saltando...")
+            continue
+
+        print(f"[PROCESSING] Registro {index + 1}/{len(records)}: CUFE: {cufe[:20]}... Cliente: {client_name}")
+
+        resultado = procesarfactura(cufe, batch, logeventos, logerrores, client_name, client_document)
+
+        if not resultado:
+            fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
+            mensajeerror = f"FECHA: [{fecha_actual}] | WARN | ErrorRegistroFactura | Falló procesar CUFE: {cufe} | Batch: {batch}\n"
+            with open(logerrores, "a", encoding="utf-8") as archivo:
+                archivo.write(mensajeerror)
+            print(f"[ERROR] Registro {index + 1} -> CUFE: {cufe[:20]}... (ERROR: imagen no encontrada o navegación fallida)")
+            os.system("taskkill /f /im chrome.exe")
+            continue
+
+        print(f"[SUCCESS] Registro {index + 1} -> CUFE: {cufe[:20]}... procesado exitosamente")
+        os.system("taskkill /f /im chrome.exe")
+
+    fecha_actual = datetime.now().strftime("%a %b %d %Y %H:%M:%S GMT-0500 (hora estándar de Colombia)")
+    mensaje = f"FECHA: [{fecha_actual}] | INFO | Fin Procesar Facturas Endpoint | Finalizo tarea | Finalizo con exito! Total procesadas: {len(records)}\n"
+    with open(logeventos, "a", encoding="utf-8") as archivo:
+        archivo.write(mensaje)
+        
+    print("[SUCCESS] Procesamiento completado - Facturas obtenidas desde endpoint")
+    print(f"[INFO] Total de registros procesados: {len(records)}")
+    
+    return 0
+
+# Alias para compatibilidad
+
+def ejecutar(lote):
+    """Alias para mantener compatibilidad con llamadas existentes"""
+    return procesar_pendientes_endpoint(lote)
