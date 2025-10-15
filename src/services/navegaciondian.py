@@ -412,10 +412,10 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
         ########################################SEGUNDO CAPTCHA#####################################
         print("=== [DEBUG] INICIANDO SEGUNDO CAPTCHA ===")
 
-        time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
+        time.sleep(0.5)  # Ajustado a 0.5 segundos para prueba
         print("[DEBUG] Esperando carga de pagina para segundo captcha...")
 
-        time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
+        time.sleep(0.5)  # Ajustado a 0.5 segundos para prueba
         print(f"[DEBUG] Intentando segundo captcha con imagenes:")
         print(f"  - Imagen 1: {rutaimagen}")
         print(f"  - Imagen 2: {rutaimagen2}")
@@ -425,7 +425,7 @@ def procesarfactura(cufeexcel, lote, logeventos, logerrores, client_name=None, c
             print("Click realizado con OpenCV.")
 
             ########################### DESCARGAR PDF (segundo captcha) ###################################################
-            time.sleep(0.3)  # Optimizado de 0.5 a 0.3 segundos
+            time.sleep(0.5)  # Ajustado a 0.5 segundos para prueba
 
             try:
                 pos2 = pyautogui.locateCenterOnScreen(rutaimagenpdf, confidence=0.8)
